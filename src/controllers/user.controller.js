@@ -1,0 +1,145 @@
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const User = require("../models/user.model");
+const generateToken = require("../utils/generateToken");
+const sendEmail = require("../utils/sendEmail");
+
+// Register
+const registerUser = async (req, res, next) => {
+  try {
+    const { firstName, lastName, email, phoneNumber, password, role, address } = req.body;
+
+    const userExists = await User.findOne({ email });
+    if (userExists) return res.status(400).json({ message: "User already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      role,
+      address,
+    });
+
+    res.status(201).json({
+      _id: user._id,
+      email: user.email,
+      token: generateToken(user._id, user.role),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Login
+const loginUser = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+
+    res.json({
+      _id: user._id,
+      email: user.email,
+      token: generateToken(user._id, user.role),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get Profile
+const getProfile = async (req, res, next) => {
+  try {
+    res.json(req.user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Delete Own Profile
+const deleteProfile = async (req, res, next) => {
+  try {
+    await User.findByIdAndDelete(req.user._id);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Admin Delete Any User
+const adminDeleteUser = async (req, res, next) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: "User deleted by admin" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Forgot Password - Generate OTP
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    user.resetOTP = otp;
+    user.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 min
+    await user.save();
+
+    await sendEmail(
+      user.email,
+      "Password Reset OTP",
+      `Your OTP is ${otp}`,
+      `<p>Your OTP is <b>${otp}</b></p>`
+    );
+
+    res.json({ message: "OTP sent to email" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Reset Password
+const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const user = await User.findOne({
+      email,
+      resetOTP: otp,
+      resetOTPExpires: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ message: "Invalid or expired OTP" });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetOTP = undefined;
+    user.resetOTPExpires = undefined;
+    await user.save();
+
+    res.json({ message: "Password reset successful" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  getProfile,
+  deleteProfile,
+  adminDeleteUser,
+  forgotPassword,
+  resetPassword,
+};

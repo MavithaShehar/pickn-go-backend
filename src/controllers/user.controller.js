@@ -25,8 +25,9 @@ const registerUser = async (req, res, next) => {
     });
 
     res.status(201).json({
-      _id: user._id,
+      id: user._id,
       email: user.email,
+      role: user.role,
       token: generateToken(user._id, user.role),
     });
   } catch (err) {
@@ -46,8 +47,9 @@ const loginUser = async (req, res, next) => {
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
     res.json({
-      _id: user._id,
+      id: user._id,
       email: user.email,
+      role: user.role,
       token: generateToken(user._id, user.role),
     });
   } catch (err) {

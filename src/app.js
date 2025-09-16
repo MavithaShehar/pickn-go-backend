@@ -7,6 +7,8 @@ const errorMiddleware = require("./middlewares/errorMiddleware");
 const notFoundMiddleware = require("./middlewares/notFoundMiddleware");
 const userRoutes = require("./routes/user.routes");
 const vehicleRoutes = require("./routes/vehicle.routes");
+const vehicleTypeRoutes = require("./routes/vehicleType.routes");
+const fuelTypeRoutes = require("./routes/fuelType.routes");
 
 const app = express();
 
@@ -19,9 +21,9 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/users", userRoutes);
-
-
 app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/vehicle-types", vehicleTypeRoutes);
+app.use("/api/fuel-types", fuelTypeRoutes);
 
 // Not Found Handler
 app.use(notFoundMiddleware);

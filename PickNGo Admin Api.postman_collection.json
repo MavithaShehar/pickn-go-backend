@@ -1,0 +1,428 @@
+{
+	"info": {
+		"_postman_id": "1b441794-7146-4ad1-99eb-425050dc3414",
+		"name": "PickNGo Admin Api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "47235614",
+		"_collection_link": "https://nifla7382-5647919.postman.co/workspace/Nifla-Team's-Workspace~83afae02-f0de-43f8-8269-1b6169e642b7/collection/47235614-1b441794-7146-4ad1-99eb-425050dc3414?action=share&source=collection_link&creator=47235614"
+	},
+	"item": [
+		{
+			"name": "New Request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"admin@example.com\",\r\n  \"password\": \"admin123\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/admin/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"admin",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin login using dummy data",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"admin@example.com\",\r\n  \"password\": \"admin123\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/admin/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"admin",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "dashboard Admin",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"admin@example.com\",\r\n  \"password\": \"admin123\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/admin/dashboard/stats",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"admin",
+						"dashboard",
+						"stats"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create New User ",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"firstName\": \"John\",\r\n  \"lastName\": \"Doe\",\r\n  \"email\": \"customer1@example.com\",\r\n  \"password\": \"password123\",\r\n  \"phoneNumber\": \"0712345678\",\r\n  \"role\": \"customer\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/users/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Verify a User",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"status\": \"approved\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/admin/users/68c9352ddefb1ce7f97ceff4/verify",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"admin",
+						"users",
+						"68c9352ddefb1ce7f97ceff4",
+						"verify"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List all complaints",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/admin/complaints",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"admin",
+						"complaints"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Generate Booking Report pdf",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/admin/reports/bookings?format=pdf",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"admin",
+						"reports",
+						"bookings"
+					],
+					"query": [
+						{
+							"key": "format",
+							"value": "pdf"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Generate Booking Report Excel",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMTIzIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU4MDA5MDc4LCJleHAiOjE3NTg2MTM4Nzh9.tITvR58RZSC4bleLZLvuy8GgmnXwsSAakaX64eIRHKw",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/admin/reports/bookings?format=excel",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"admin",
+						"reports",
+						"bookings"
+					],
+					"query": [
+						{
+							"key": "format",
+							"value": "excel"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

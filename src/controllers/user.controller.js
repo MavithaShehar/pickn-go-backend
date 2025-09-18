@@ -23,8 +23,8 @@ const registerUser = async (req, res, next) => {
       email,
       password: hashedPassword,
       role,
-      verificationStatus: false, // default not verified
-      status: "active"           // default active
+      verificationStatus: false, 
+      status: "active"           
     });
 
     await newUser.save();

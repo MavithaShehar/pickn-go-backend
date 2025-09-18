@@ -6,6 +6,7 @@ const vehicleSchema = new mongoose.Schema({
   description: { type: String },
   pricePerKm: { type: Number, required: true },
   pricePerDay: { type: Number, required: true },
+  
   year: { type: Number },
   seats: { type: Number },
   status: { type: String, enum: ["available", "unavailable"], default: "available" },

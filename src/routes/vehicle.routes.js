@@ -39,8 +39,8 @@ router.get(
 // To test without auth, comment out the authMiddleware and roleMiddleware lines
 router.get(
   "/search/owner",
-  // authMiddleware,
-  // roleMiddleware("customer"),
+  authMiddleware,
+  roleMiddleware("customer"),
   getVehiclesByOwnerName
 );
 

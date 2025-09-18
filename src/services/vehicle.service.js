@@ -1,6 +1,6 @@
 const Vehicle = require("../models/vehicle.model");
 const User = require("../models/user.model");
-
+const mongoose = require("mongoose");
 // Create a new vehicle
 async function createVehicle(ownerId, vehicleData) {
   const vehicle = new Vehicle({ ...vehicleData, ownerId });
@@ -54,10 +54,17 @@ async function getAvailableVehiclesByOwner(vehicleId) {
   return await Vehicle.find({ ownerId: vehicle.ownerId, status: "available" });
 }
 
-// ✅ NEW FUNCTION: Get vehicles by owner name (for customers)
+//  NEW FUNCTION: Get vehicles by owner name (for customers)
 async function getVehiclesByOwnerName(ownerName) {
-  // Find the owner by name (case-insensitive)
-  const owner = await User.findOne({ name: { $regex: ownerName, $options: "i" } });
+  // Search for owner by firstName OR lastName (case-insensitive)
+  const owner = await User.findOne({ 
+    role: "owner",
+    $or: [
+      { firstName: { $regex: ownerName, $options: "i" } },
+      { lastName: { $regex: ownerName, $options: "i" } }
+    ]
+  });
+
   if (!owner) return [];
 
   // Find all vehicles of that owner + populate owner info + reviews

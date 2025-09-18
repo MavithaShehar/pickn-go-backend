@@ -7,6 +7,7 @@ const {
   adminDeleteUser,
   forgotPassword,
   resetPassword,
+  getOwnerDetails,
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -26,5 +27,7 @@ router.delete("/profile", authMiddleware, deleteProfile);
 
 // Admin
 router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
+// Customer: View owner details
+router.get("/owner-details/:ownerId", authMiddleware, roleMiddleware("customer"), getOwnerDetails);
 
 module.exports = router;

@@ -1,10 +1,10 @@
 const vehicleService = require("../services/vehicle.service");
-const User = require("../models/user.model"); 
+const User = require("../models/user.model");
 
 // Add new vehicle
 exports.addVehicle = async (req, res) => {
   try {
-    // If the user is a customer  change to owner
+    // If the user is a customer, change their role to owner
     if (req.user.role === "customer") {
       await User.findByIdAndUpdate(req.user.id, { role: "owner" });
       req.user.role = "owner"; // update role in current request
@@ -17,7 +17,7 @@ exports.addVehicle = async (req, res) => {
   }
 };
 
-// Get all vehicles of login owner
+// Get all vehicles of logged-in owner
 exports.getVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getOwnerVehicles(req.user.id);
@@ -50,6 +50,7 @@ exports.getAvailableVehicles = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 // Admin: get all available vehicles
 exports.getAllAvailableVehicles = async (req, res) => {
   try {
@@ -69,7 +70,6 @@ exports.getAllUnavailableVehicles = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // Update vehicle
 exports.updateVehicle = async (req, res) => {
@@ -103,10 +103,33 @@ exports.deleteVehicle = async (req, res) => {
 // Customer: get all available vehicles from the same owner of a selected vehicle
 exports.getAvailableVehiclesByOwner = async (req, res) => {
   try {
-    const vehicles = await vehicleService.getAvailableVehiclesByOwner(req.params.id);
+    const vehicles = await vehicleService.getAvailableVehiclesByOwner(
+      req.params.id
+    );
     if (!vehicles) return res.status(404).json({ message: "Vehicle not found" });
 
     res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ NEW FEATURE: Customer can search by owner name
+exports.getVehiclesByOwnerName = async (req, res) => {
+  try {
+    const { ownerName } = req.query; // Example: /api/vehicles/search/owner?ownerName=John
+    if (!ownerName) {
+      return res.status(400).json({ message: "Owner name is required" });
+    }
+
+    const ownerDetails = await vehicleService.getVehiclesByOwnerName(ownerName);
+    if (!ownerDetails) {
+      return res
+        .status(404)
+        .json({ message: "No vehicles found for this owner" });
+    }
+
+    res.json(ownerDetails);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

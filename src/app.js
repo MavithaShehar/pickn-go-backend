@@ -6,6 +6,7 @@ const cors = require("cors");
 const errorMiddleware = require("./middlewares/errorMiddleware");
 const notFoundMiddleware = require("./middlewares/notFoundMiddleware");
 const userRoutes = require("./routes/user.routes");
+const searchRoutes = require("./routes/search.routes");
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use("/api/search", searchRoutes);
 
 // Not Found Handler
 app.use(notFoundMiddleware);

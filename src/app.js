@@ -6,7 +6,7 @@ const cors = require("cors");
 const errorMiddleware = require("./middlewares/errorMiddleware");
 const notFoundMiddleware = require("./middlewares/notFoundMiddleware");
 const userRoutes = require("./routes/user.routes");
-const adminRoutes = require("./routes/adminRoutes"); 
+
 const app = express();
 
 // Middlewares
@@ -18,12 +18,13 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/users", userRoutes);
-app.use("/api/admin", adminRoutes);
 
 // Not Found Handler
 app.use(notFoundMiddleware);
 
 // Global Error Handler
 app.use(errorMiddleware);
+
+
 
 module.exports = app;

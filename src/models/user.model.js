@@ -9,7 +9,8 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ["admin", "owner", "customer"], required: true },
   profilePhoto: { type: String },
   address: { type: String },
-  verificationStatus: { type: Boolean, default: false },
+  verificationStatus: { type: Boolean, default: false }, 
+  status: { type: String, enum: ["active", "suspended"], default: "active" },
   resetOTP: { type: String },
   resetOTPExpires: { type: Date },
 }, { timestamps: true });

@@ -71,6 +71,16 @@ exports.getAllUnavailableVehicles = async (req, res) => {
 };
 
 
+exports.getAllUnvarifiedVehicles = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getAllUnvarifiedVehicles();
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 // Update vehicle
 exports.updateVehicle = async (req, res) => {
   try {

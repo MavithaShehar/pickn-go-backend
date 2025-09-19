@@ -8,7 +8,8 @@ const {
   getAvailableVehicles,
   getAllAvailableVehicles,   
   getAllUnavailableVehicles,
-  getAvailableVehiclesByOwner
+  getAvailableVehiclesByOwner,
+  getAllUnvarifiedVehicles,
 } = require("../controllers/vehicle.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -23,6 +24,9 @@ router.get("/admin/available",authMiddleware,roleMiddleware("admin"),getAllAvail
 
 // Admin: view ALL unavailable vehicles
 router.get("/admin/unavailable",authMiddleware,roleMiddleware("admin"),getAllUnavailableVehicles);
+
+router.get("/admin/unvarified",authMiddleware,roleMiddleware("admin"),getAllUnvarifiedVehicles);
+
 
 // Customer: view all available vehicles of the owner of a selected vehicle
 router.get("/owner/:id/available",authMiddleware,roleMiddleware("customer"),getAvailableVehiclesByOwner);

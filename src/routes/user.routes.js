@@ -37,7 +37,6 @@ router.delete("/profile", authMiddleware, deleteProfile);
 router.get("/alluser", authMiddleware, roleMiddleware("admin"), getAllUsers);
 router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
 router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyUser);
-router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyVehicle);
 
 
 

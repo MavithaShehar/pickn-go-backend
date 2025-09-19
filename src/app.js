@@ -9,6 +9,7 @@ const userRoutes = require("./routes/user.routes");
 const vehicleRoutes = require("./routes/vehicle.routes");
 const vehicleTypeRoutes = require("./routes/vehicleType.routes");
 const fuelTypeRoutes = require("./routes/fuelType.routes");
+const complaintRoutes = require('./routes/complaint.routes');
 const searchRoutes = require("./routes/search.routes");
 const bookingRoutes = require("./routes/booking.routes");
 
@@ -26,8 +27,11 @@ app.use("/api/users", userRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/vehicle-types", vehicleTypeRoutes);
 app.use("/api/fuel-types", fuelTypeRoutes);
+
+app.use("/api/complaints", complaintRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use('/uploads', express.static('uploads'));
 
 // Not Found Handler
 app.use(notFoundMiddleware);

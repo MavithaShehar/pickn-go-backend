@@ -10,12 +10,17 @@ const {
   getAllUnavailableVehicles,
   getAvailableVehiclesByOwner,
   getAllUnvarifiedVehicles,
+  adminVerifyVehicle,
 } = require("../controllers/vehicle.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 
 const router = express.Router();
+
+
+router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyVehicle);
+
 
 // Customer: view only available vehicles
 router.get("/available",authMiddleware,roleMiddleware("customer"),getAvailableVehicles);
@@ -24,6 +29,7 @@ router.get("/admin/available",authMiddleware,roleMiddleware("admin"),getAllAvail
 
 // Admin: view ALL unavailable vehicles
 router.get("/admin/unavailable",authMiddleware,roleMiddleware("admin"),getAllUnavailableVehicles);
+// Admin: view ALL unvarified vehicles
 
 router.get("/admin/unvarified",authMiddleware,roleMiddleware("admin"),getAllUnvarifiedVehicles);
 

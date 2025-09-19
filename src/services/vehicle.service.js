@@ -1,19 +1,33 @@
 const Vehicle = require("../models/vehicle.model");
-const User = require("../models/user.model");
-const mongoose = require("mongoose");
+
 // Create a new vehicle
 async function createVehicle(ownerId, vehicleData) {
+  const owner = await User.findById(ownerId);
+  if (!owner || owner.role !== "owner" || !owner.verificationStatus) {
+    throw new Error("Only verified owners can add vehicles");
+  }
+
   const vehicle = new Vehicle({ ...vehicleData, ownerId });
   return await vehicle.save();
 }
 
-// Get all vehicles by owner (for logged-in owner)
+// Get all vehicles by owner
 async function getOwnerVehicles(ownerId) {
+  const owner = await User.findById(ownerId);
+  if (!owner || owner.role !== "owner" || !owner.verificationStatus) {
+    throw new Error("Only verified owners can view their vehicles");
+  }
+
   return await Vehicle.find({ ownerId });
 }
 
-// Get single vehicle by ID (only if belongs to owner)
+// Get single vehicle by ID (only if belongs to verified owner)
 async function getVehicleById(ownerId, vehicleId) {
+  const owner = await User.findById(ownerId);
+  if (!owner || owner.role !== "owner" || !owner.verificationStatus) {
+    throw new Error("Only verified owners can view their vehicles");
+  }
+
   return await Vehicle.findOne({ _id: vehicleId, ownerId });
 }
 
@@ -22,18 +36,23 @@ async function getAvailableVehicles() {
   return await Vehicle.find({ status: "available" });
 }
 
-// Get all available vehicles (for admins)
+// Get all available vehicles (for owners )
 async function getAllAvailableVehicles() {
   return await Vehicle.find({ status: "available" });
 }
 
-// Get all unavailable vehicles (for admins)
+// Get all unavailable vehicles (for owners )
 async function getAllUnavailableVehicles() {
   return await Vehicle.find({ status: "unavailable" });
 }
 
-// Update vehicle (only by owner)
+//update
 async function updateVehicle(ownerId, vehicleId, updateData) {
+  const owner = await User.findById(ownerId);
+  if (!owner || owner.role !== "owner" || !owner.verificationStatus) {
+    throw new Error("Only verified owners can update vehicles");
+  }
+
   return await Vehicle.findOneAndUpdate(
     { _id: vehicleId, ownerId },
     updateData,
@@ -41,12 +60,16 @@ async function updateVehicle(ownerId, vehicleId, updateData) {
   );
 }
 
-// Delete vehicle (only by owner)
+//delete
 async function deleteVehicle(ownerId, vehicleId) {
+  const owner = await User.findById(ownerId);
+  if (!owner || owner.role !== "owner" || !owner.verificationStatus) {
+    throw new Error("Only verified owners can delete vehicles");
+  }
+
   return await Vehicle.findOneAndDelete({ _id: vehicleId, ownerId });
 }
-
-// Get all available vehicles of a specific owner by vehicleId
+// Get all available vehicles of a specific owner
 async function getAvailableVehiclesByOwner(vehicleId) {
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) return null;
@@ -89,5 +112,4 @@ module.exports = {
   getAllAvailableVehicles,
   getAllUnavailableVehicles,
   getAvailableVehiclesByOwner,
-  getVehiclesByOwnerName, 
 };

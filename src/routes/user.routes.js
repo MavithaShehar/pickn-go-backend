@@ -7,7 +7,6 @@ const {
   adminDeleteUser,
   forgotPassword,
   resetPassword,
-  getOwnerDetails,
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -24,10 +23,13 @@ router.post("/reset-password", resetPassword);
 // Protected
 router.get("/profile", authMiddleware, getProfile);
 router.delete("/profile", authMiddleware, deleteProfile);
+// router.put("/verify/:id", protect, admin, adminVerifyVehicle);
+
+
 
 // Admin
+// Admin: Get all users
+router.get("/alluser", authMiddleware, roleMiddleware("admin"), getAllUsers);
 router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
-// Customer: View owner details
-router.get("/owner-details/:ownerId", authMiddleware, roleMiddleware("customer"), getOwnerDetails);
 
 module.exports = router;

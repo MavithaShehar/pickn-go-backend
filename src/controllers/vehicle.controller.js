@@ -71,6 +71,7 @@ exports.getAllUnavailableVehicles = async (req, res) => {
   }
 };
 
+
 // Update vehicle
 exports.updateVehicle = async (req, res) => {
   try {

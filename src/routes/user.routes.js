@@ -28,7 +28,6 @@ router.post("/reset-password", resetPassword);
 // Protected
 router.get("/profile", authMiddleware, getProfile);
 router.delete("/profile", authMiddleware, deleteProfile);
-// router.put("/verify/:id", protect, admin, adminVerifyVehicle);
 
 
 

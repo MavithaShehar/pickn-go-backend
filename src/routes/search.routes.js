@@ -1,9 +1,14 @@
+// search.routes.js
 const express = require("express");
-const { createVehicle, getFilteredVehicles } = require("../controllers/search.controller");
-
 const router = express.Router();
+const searchController = require("../controllers/searchController");
 
-router.post("/create", createVehicle);    // NEW: Add this line
-router.post("/filter", getFilteredVehicles);
+// Routes for separate search
+router.get("/location", searchController.searchByLocation);
+router.get("/price", searchController.searchByPrice);
+router.get("/type", searchController.searchByVehicleType);
+
+// Route for combined search
+router.get("/combined", searchController.searchCombined);
 
 module.exports = router;

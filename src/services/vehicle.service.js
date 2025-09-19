@@ -57,8 +57,13 @@ async function deleteVehicle(ownerId, vehicleId) {
 }
 
 // Get all available vehicles (for customers)
+
+// async function getAvailableVehicles() {
+//   return await Vehicle.find({ status: "available" });
+// }
+
 async function getAvailableVehicles() {
-  return await Vehicle.find({ status: "available" });
+  return await Vehicle.find({ status: "available", verificationStatus: true });
 }
 
 // Admin: get all available vehicles
@@ -69,6 +74,10 @@ async function getAllAvailableVehicles() {
 // Admin: get all unavailable vehicles
 async function getAllUnavailableVehicles() {
   return await Vehicle.find({ status: "unavailable" });
+}
+
+async function getAllUnvarifiedVehicles() {
+  return await Vehicle.find({ status: "unavailable" , verificationStatus: false });
 }
 
 // Get all available vehicles of a specific owner (for customers)
@@ -89,4 +98,5 @@ module.exports = {
   getAllAvailableVehicles,
   getAllUnavailableVehicles,
   getAvailableVehiclesByOwner,
+  getAllUnvarifiedVehicles,
 };

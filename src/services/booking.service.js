@@ -10,7 +10,63 @@ function toDateOnly(d) {
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 // Create booking
+// async function createBooking(vehicleId, customerId, bookingStartDate, bookingEndDate) {
+//   const vehicle = await Vehicle.findById(vehicleId);
+//   if (!vehicle) throw new Error("Vehicle not found");
+//   if (vehicle.status !== "available") throw new Error("Vehicle is not available");
+
+//   // pricePerDay fallback: prefer pricePerDay, otherwise use price
+//   const pricePerDay = (typeof vehicle.pricePerDay !== "undefined") ? vehicle.pricePerDay : vehicle.price;
+//   if (pricePerDay == null || isNaN(pricePerDay)) throw new Error("Vehicle price per day is not defined");
+
+//   const today = toDateOnly(new Date());
+
+//   const start = toDateOnly(bookingStartDate);
+//   const end = toDateOnly(bookingEndDate);
+
+//   if (start < today) throw new Error("Start date cannot be in the past");
+//   if (end <= start) throw new Error("End date must be after start date");
+
+//   const existingBooking = await Booking.findOne({
+//     vehicleId,
+//     customerId,
+//     bookingStatus: { $in: ["pending", "confirmed"] },
+//   });
+//   if (existingBooking) throw new Error("You have already booked this vehicle");
+
+//   // dayCount = number of days between start and end (end exclusive)
+//   const dayCount = Math.round((end - start) / MS_PER_DAY);
+//   if (dayCount < 1) throw new Error("Booking must be at least 1 day");
+
+//   const totalPrice = dayCount * Number(pricePerDay);
+
+//   const booking = new Booking({
+//     vehicleId,
+//     customerId,
+//     bookingStartDate: start,
+//     bookingEndDate: end,
+//     totalPrice,
+//     bookingStatus: "pending",
+//   });
+
+//   await booking.save();
+
+//   // mark vehicle unavailable
+//   vehicle.status = "unavailable";
+//   await vehicle.save();
+
+//   return booking;
+// }
+
+
+// Create booking
 async function createBooking(vehicleId, customerId, bookingStartDate, bookingEndDate) {
+  // ✅ Verify customer exists and is verified
+  const customer = await User.findById(customerId);
+  if (!customer || customer.role !== "customer" || !customer.verificationStatus) {
+    throw new Error("Only verified customers can make bookings");
+  }
+
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) throw new Error("Vehicle not found");
   if (vehicle.status !== "available") throw new Error("Vehicle is not available");
@@ -20,7 +76,6 @@ async function createBooking(vehicleId, customerId, bookingStartDate, bookingEnd
   if (pricePerDay == null || isNaN(pricePerDay)) throw new Error("Vehicle price per day is not defined");
 
   const today = toDateOnly(new Date());
-
   const start = toDateOnly(bookingStartDate);
   const end = toDateOnly(bookingEndDate);
 

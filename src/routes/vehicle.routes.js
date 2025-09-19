@@ -8,8 +8,7 @@ const {
   getAvailableVehicles,
   getAllAvailableVehicles,
   getAllUnavailableVehicles,
-  getAvailableVehiclesByOwner,
-  getVehiclesByOwnerName,   
+  getAvailableVehiclesByOwner
 } = require("../controllers/vehicle.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -55,14 +54,7 @@ router.get(
 );
 
 // Admin: view ALL unavailable vehicles
-router.get(
-  "/admin/unavailable",
-  authMiddleware,
-  roleMiddleware("admin"),
-  getAllUnavailableVehicles
-);
-
-
+router.get("/admin/unavailable",authMiddleware,roleMiddleware("admin"),getAllUnavailableVehicles);
 
 // Owner: add new vehicle (POST)
 router.post("/", authMiddleware, addVehicle);

@@ -12,31 +12,37 @@ const registerUser = async (req, res, next) => {
   try {
     const { firstName, lastName, email, phoneNumber, password, role, address } = req.body;
 
-    const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: "User already exists" });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      if (existingUser.status === "suspended") {
+        return res.status(403).json({ message: "This account is suspended. You cannot register again." });
+      }
+      return res.status(400).json({ message: "Email already in use" });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
+    const newUser = new User({
       firstName,
       lastName,
       email,
       phoneNumber,
+      address,
       password: hashedPassword,
       role,
-      address,
+      verificationStatus: false, // default
+      status: "active"           // default
     });
 
-    res.status(201).json({
-      id: user._id,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user._id, user.role),
-    });
+    await newUser.save();
+
+    res.status(201).json({ message: "User registered successfully", user: newUser });
   } catch (err) {
     next(err);
   }
 };
+
+
 
 const loginUser = async (req, res, next) => {
   try {
@@ -44,6 +50,14 @@ const loginUser = async (req, res, next) => {
 
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+    if (user.status === "suspended") {
+      return res.status(403).json({ message: "Account is suspended" });
+    }
+
+    // if (user.role !== "admin" && !user.verificationStatus) {
+    //   return res.status(403).json({ message: "Account is not verified yet" });
+    // }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
@@ -58,6 +72,17 @@ const loginUser = async (req, res, next) => {
     next(err);
   }
 };
+
+// Get all users
+const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find(); // get all users
+    res.json(users);
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 const getProfile = async (req, res, next) => {
   try {
@@ -132,33 +157,6 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-// ------------------- Customer: Get Owner Details -------------------
-
-const getOwnerDetails = async (req, res, next) => {
-  try {
-    const ownerId = req.params.ownerId;
-
-    const owner = await User.findOne({ _id: ownerId, role: "owner" }).select("-password");
-    if (!owner) {
-      return res.status(404).json({ success: false, message: "Owner not found" });
-    }
-
-    const vehicles = await Vehicle.find({ owner: ownerId });
-    const reviews = await Review.find({ owner: ownerId }).populate("customer", "firstName lastName email");
-
-    res.json({
-      success: true,
-      owner,
-      vehicles,
-      reviews,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// ------------------- Exports -------------------
-
 module.exports = {
   registerUser,
   loginUser,
@@ -167,5 +165,4 @@ module.exports = {
   adminDeleteUser,
   forgotPassword,
   resetPassword,
-  getOwnerDetails, // new
 };

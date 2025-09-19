@@ -7,34 +7,33 @@ const sendEmail = require("../utils/sendEmail");
 // Register
 const registerUser = async (req, res, next) => {
   try {
-    const { email, password, role } = req.body;
+    const { firstName, lastName, email, phoneNumber, password, role, address } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      if (existingUser.status === "suspended") {
-        return res.status(403).json({ message: "This account is suspended. You cannot register again." });
-      }
-      return res.status(400).json({ message: "Email already in use" });
-    }
+    const userExists = await User.findOne({ email });
+    if (userExists) return res.status(400).json({ message: "User already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new User({
+    const user = await User.create({
+      firstName,
+      lastName,
       email,
+      phoneNumber,
       password: hashedPassword,
       role,
-      verificationStatus: false, 
-      status: "active"           
+      address,
     });
 
-    await newUser.save();
-
-    res.status(201).json({ message: "User registered successfully", user: newUser });
+    res.status(201).json({
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id, user.role),
+    });
   } catch (err) {
     next(err);
   }
 };
-
 
 // Login
 const loginUser = async (req, res, next) => {
@@ -43,14 +42,6 @@ const loginUser = async (req, res, next) => {
 
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
-
-    if (user.status === "suspended") {
-      return res.status(403).json({ message: "Account is suspended" });
-    }
-
-    // if (user.role !== "admin" && !user.verificationStatus) {
-    //   return res.status(403).json({ message: "Account is not verified yet" });
-    // }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
@@ -65,17 +56,6 @@ const loginUser = async (req, res, next) => {
     next(err);
   }
 };
-
-// Get all users
-const getAllUsers = async (req, res, next) => {
-  try {
-    const users = await User.find(); // get all users
-    res.json(users);
-  } catch (err) {
-    next(err);
-  }
-};
-
 
 // Get Profile
 const getProfile = async (req, res, next) => {
@@ -156,103 +136,6 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-// Admin Verify User
-// const adminVerifyUser = async (req, res, next) => {
-//   try {
-//     const user = await User.findById(req.params.id);
-//     if (!user) return res.status(404).json({ message: "User not found" });
-
-//     user.verificationStatus = true;
-//     await user.save();
-
-//     res.json({ message: "User verified successfully" });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// Admin Verify User
-const adminVerifyUser = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.verificationStatus = true;
-    await user.save();
-
-    // Send verification email
-    await sendEmail(
-      user.email,
-      "Account Verified",
-      "Your account has been verified successfully.",
-      `<p>Hello,</p>
-       <p>Your account has been <b>verified</b> successfully. You can now log in and use all features.</p>
-       <p>Thank you,<br/>PicknGo Team</p>`
-    );
-
-    res.json({ message: "User verified successfully and email sent" });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// Admin Verify Vehicle
-const adminVerifyVehicle = async (req, res) => {
-  try {
-    const vehicle = await Vehicle.findById(req.params.id).populate("ownerId");
-
-    if (!vehicle) {
-      return res.status(404).json({ message: "Vehicle not found" });
-    }
-
-    vehicle.verificationStatus = true;
-    await vehicle.save();
-
-    // Send verification email to owner
-    if (vehicle.ownerId && vehicle.ownerId.email) {
-      await sendEmail(
-        vehicle.ownerId.email,
-        "Vehicle Verified",
-        `Your vehicle "${vehicle.title}" has been verified.`,
-        `<p>Hello ${vehicle.ownerId.firstName},</p>
-         <p>Your vehicle <b>${vehicle.title}</b> has been <b>verified</b> by admin and is now available for customers.</p>
-         <p>Thank you,<br/>PicknGo Team</p>`
-      );
-    }
-
-    res.json({ message: "Vehicle verified successfully and email sent" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-
-// Admin Suspend User
-const adminSuspendUser = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.status = "suspended";
-    await user.save();
-
-    res.json({ message: "User suspended successfully" });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const getUnverifiedUsers = async (req, res, next) => {
-  try {
-    const users = await User.find({ verificationStatus: false });
-
-    res.json(users);
-  } catch (err) {
-    next(err);
-  }
-};
-
-
 module.exports = {
   registerUser,
   loginUser,
@@ -261,9 +144,4 @@ module.exports = {
   adminDeleteUser,
   forgotPassword,
   resetPassword,
-  adminVerifyUser,
-  adminSuspendUser,
-  getUnverifiedUsers,
-  getAllUsers,
-  adminVerifyVehicle,
 };

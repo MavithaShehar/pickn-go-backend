@@ -11,7 +11,7 @@ const vehicleTypeRoutes = require("./routes/vehicleType.routes");
 const fuelTypeRoutes = require("./routes/fuelType.routes");
 
 const bookingRoutes = require("./routes/booking.routes");
-const searchRoutes = require("./routes/search.routes");
+
 
 const app = express();
 
@@ -27,7 +27,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/vehicle-types", vehicleTypeRoutes);
 app.use("/api/fuel-types", fuelTypeRoutes);
-app.use("/api/search", searchRoutes);
+
 app.use("/api/bookings", bookingRoutes);
 
 

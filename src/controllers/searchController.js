@@ -1,3 +1,4 @@
+// searchController.js
 const Vehicle = require("../models/vehicle.model");
 
 // Search vehicles by location
@@ -55,6 +56,41 @@ exports.searchByVehicleType = async (req, res) => {
     .populate("vehicleTypeId", "name")
     .populate("fuelTypeId", "type")
     .populate("ownerId", "firstName lastName");
+
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Combined search by location, price range, and vehicle type (all optional)
+exports.searchCombined = async (req, res) => {
+  try {
+    const { location, minPrice, maxPrice, typeId } = req.query;
+
+    // Build the filter dynamically based on provided query params
+    const filter = { status: "available" };
+
+    if (location) {
+      filter.location = { $regex: location, $options: "i" };
+    }
+
+    if (minPrice || maxPrice) {
+      filter.pricePerDay = {};
+      if (minPrice) filter.pricePerDay.$gte = Number(minPrice);
+      if (maxPrice) filter.pricePerDay.$lte = Number(maxPrice);
+    }
+
+    if (typeId) {
+      filter.vehicleTypeId = typeId;
+    }
+
+    // If no filters are provided, you might want to return an error or all available vehicles
+    // But for flexibility, we'll allow it to return all if no params are given
+    const vehicles = await Vehicle.find(filter)
+      .populate("vehicleTypeId", "name")
+      .populate("fuelTypeId", "type")
+      .populate("ownerId", "firstName lastName");
 
     res.json(vehicles);
   } catch (error) {

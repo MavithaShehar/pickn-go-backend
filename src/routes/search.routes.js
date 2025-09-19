@@ -1,3 +1,4 @@
+// search.routes.js
 const express = require("express");
 const router = express.Router();
 const searchController = require("../controllers/searchController");
@@ -7,4 +8,7 @@ router.get("/location", searchController.searchByLocation);
 router.get("/price", searchController.searchByPrice);
 router.get("/type", searchController.searchByVehicleType);
 
-module.exports = router;
+// Route for combined search
+router.get("/combined", searchController.searchCombined);
+
+module.exports = router;

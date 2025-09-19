@@ -1,5 +1,7 @@
 const Vehicle = require("../models/vehicle.model");
 const User = require("../models/user.model");
+const VehicleType = require("../models/vehicleType.model");
+const FuelType = require("../models/fuelType.model");
 
 // Create a new vehicle
 async function createVehicle(ownerId, vehicleData) {
@@ -11,6 +13,7 @@ async function createVehicle(ownerId, vehicleData) {
   const vehicle = new Vehicle({ ...vehicleData, ownerId });
   return await vehicle.save();
 }
+
 
 // Get all vehicles by owner (only verified owners can fetch their own vehicles)
 async function getOwnerVehicles(ownerId) {

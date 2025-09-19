@@ -1,7 +1,7 @@
 const Booking = require("../models/booking.model");
 const Vehicle = require("../models/vehicle.model");
 
-// helper: normalize to local date midnight (no time part)
+// : normalize to local date midnight (no time part)
 function toDateOnly(d) {
   const dt = new Date(d);
   return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());

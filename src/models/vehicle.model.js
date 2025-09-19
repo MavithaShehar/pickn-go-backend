@@ -9,8 +9,8 @@ const vehicleSchema = new mongoose.Schema({
   year: { type: Number },
   seats: { type: Number },
   status: { type: String, enum: ["available", "unavailable"], default: "available" },
-  vehicleTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "VehicleType" },
-  fuelTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "FuelType" },
+  vehicleTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "VehicleType",  },
+  fuelTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "FuelType", },
   location: { type: String, required: true },
 }, { timestamps: true });
 

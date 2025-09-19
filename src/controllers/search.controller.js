@@ -1,80 +1,99 @@
-const Vehicle = require("../models/search.model");
+// searchController.js
+const Vehicle = require("../models/vehicle.model");
 
-const createVehicle = async (req, res) => {
+// Search vehicles by location
+exports.searchByLocation = async (req, res) => {
   try {
-    const { name, type, price, location, description } = req.body;
+    const { location } = req.query;
+    if (!location) return res.status(400).json({ message: "Location is required" });
 
-    // Validation
-    if (!name || !type || !price || !location) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, type, price, and location are required",
-      });
-    }
+    const vehicles = await Vehicle.find({
+      status: "available",
+      location: { $regex: location, $options: "i" } // case-insensitive search
+    })
+    .populate("vehicleTypeId", "name")
+    .populate("fuelTypeId", "type")
+    .populate("ownerId", "firstName lastName");
 
-    // Create new vehicle
-    const vehicle = await Vehicle.create({
-      name,
-      type,
-      price,
-      location,
-      description: description || "",
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Vehicle created successfully",
-      data: vehicle,
-    });
+    res.json(vehicles);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server error during vehicle creation",
-      error: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
-const getFilteredVehicles = async (req, res) => {
+// Search vehicles by price range
+exports.searchByPrice = async (req, res) => {
   try {
-    const { type, minPrice, maxPrice, location } = req.body;
+    const { minPrice, maxPrice } = req.query;
+    if (!minPrice && !maxPrice) return res.status(400).json({ message: "At least minPrice or maxPrice is required" });
 
-    // Build dynamic query
-    let query = {};
-    
-    if (type) {
-      query.type = type;
-    }
-    
+    const filter = { status: "available" };
+    if (minPrice || maxPrice) filter.pricePerDay = {};
+    if (minPrice) filter.pricePerDay.$gte = Number(minPrice);
+    if (maxPrice) filter.pricePerDay.$lte = Number(maxPrice);
+
+    const vehicles = await Vehicle.find(filter)
+      .populate("vehicleTypeId", "name")
+      .populate("fuelTypeId", "type")
+      .populate("ownerId", "firstName lastName");
+
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Search vehicles by vehicle type
+exports.searchByVehicleType = async (req, res) => {
+  try {
+    const { typeId } = req.query;
+    if (!typeId) return res.status(400).json({ message: "Vehicle type ID is required" });
+
+    const vehicles = await Vehicle.find({
+      status: "available",
+      vehicleTypeId: typeId
+    })
+    .populate("vehicleTypeId", "name")
+    .populate("fuelTypeId", "type")
+    .populate("ownerId", "firstName lastName");
+
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Combined search by location, price range, and vehicle type (all optional)
+exports.searchCombined = async (req, res) => {
+  try {
+    const { location, minPrice, maxPrice, typeId } = req.query;
+
+    // Build the filter dynamically based on provided query params
+    const filter = { status: "available" };
+
     if (location) {
-      query.location = location;
-    }
-    
-    if (minPrice !== undefined || maxPrice !== undefined) {
-      query.price = {};
-      if (minPrice !== undefined) {
-        query.price.$gte = minPrice;
-      }
-      if (maxPrice !== undefined) {
-        query.price.$lte = maxPrice;
-      }
+      filter.location = { $regex: location, $options: "i" };
     }
 
-    // Fetch matching vehicles
-    const vehicles = await Vehicle.find(query).select("-__v");
+    if (minPrice || maxPrice) {
+      filter.pricePerDay = {};
+      if (minPrice) filter.pricePerDay.$gte = Number(minPrice);
+      if (maxPrice) filter.pricePerDay.$lte = Number(maxPrice);
+    }
 
-    res.status(200).json({
-      success: true,
-      count: vehicles.length,
-      data: vehicles,
-    });
+    if (typeId) {
+      filter.vehicleTypeId = typeId;
+    }
+
+    // If no filters are provided, you might want to return an error or all available vehicles
+    // But for flexibility, we'll allow it to return all if no params are given
+    const vehicles = await Vehicle.find(filter)
+      .populate("vehicleTypeId", "name")
+      .populate("fuelTypeId", "type")
+      .populate("ownerId", "firstName lastName");
+
+    res.json(vehicles);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server error during search",
-      error: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
-
-module.exports = { createVehicle, getFilteredVehicles };

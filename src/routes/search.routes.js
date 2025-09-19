@@ -1,7 +1,7 @@
 // search.routes.js
 const express = require("express");
 const router = express.Router();
-const searchController = require("../controllers/searchController");
+const searchController = require("../controllers/search.controller");
 
 // Routes for separate search
 router.get("/location", searchController.searchByLocation);

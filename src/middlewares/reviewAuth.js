@@ -1,4 +1,3 @@
-// src/middlewares/reviewAuth.js
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model"); // 
 // Check if user is authenticated

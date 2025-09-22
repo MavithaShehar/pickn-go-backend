@@ -2,11 +2,11 @@ const Review = require("../models/review.model");
 const Booking = require("../models/booking.model");
 const Vehicle = require("../models/vehicle.model");
 
-//Create a new review (only if user booked this vehicle)
+
 
 async function createReview(userId, bookingId, vehicleId, rating, comment) {
-  // Verify booking belongs to this user
-  const booking = await Booking.findOne({ _id: bookingId, userId });
+  
+  const booking = await Booking.findOne({ _id: bookingId, customerId:userId });
   if (!booking) throw new Error("You are not allowed to review this booking");
 
   const review = new Review({
@@ -19,7 +19,7 @@ async function createReview(userId, bookingId, vehicleId, rating, comment) {
   return await review.save();
 }
 
-//Update review (only if review belongs to user)
+//Update review 
 async function updateReview(userId, reviewId, updateData) {
   const review = await Review.findOneAndUpdate(
     { _id: reviewId, userId },
@@ -30,7 +30,7 @@ async function updateReview(userId, reviewId, updateData) {
   return review;
 }
 
-//Delete review (customer can delete own review)
+//Delete review 
  
 async function deleteReview(userId, reviewId) {
   const review = await Review.findOneAndDelete({ _id: reviewId, userId });

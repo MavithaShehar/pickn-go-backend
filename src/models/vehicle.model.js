@@ -12,6 +12,7 @@ const vehicleSchema = new mongoose.Schema({
   vehicleTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "VehicleType" },
   fuelTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "FuelType" },
   location: { type: String, required: true },
+  reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }]
 }, { timestamps: true });
 
 module.exports = mongoose.model("Vehicle", vehicleSchema);

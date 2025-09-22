@@ -1,5 +1,6 @@
 const Booking = require("../models/booking.model");
 const Vehicle = require("../models/vehicle.model");
+const User = require("../models/user.model");
 
 // Helper: normalize to local date midnight (no time part)
 function toDateOnly(d) {
@@ -105,9 +106,7 @@ async function createBooking(vehicleId, customerId, bookingStartDate, bookingEnd
 
   await booking.save();
 
-  // mark vehicle unavailable
-  vehicle.status = "unavailable";
-  await vehicle.save();
+  
 
   // 🔹 Populate vehicleId before returning (fix undefined in emails)
   return await booking.populate("vehicleId");

@@ -41,6 +41,36 @@ exports.getVehicleById = async (req, res) => {
   }
 };
 
+// Get available vehicles for customers
+exports.getAvailableVehicles = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getAvailableVehicles();
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// Admin: get all available vehicles
+exports.getAllAvailableVehicles = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getAllAvailableVehicles();
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Admin: get all unavailable vehicles
+exports.getAllUnavailableVehicles = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getAllUnavailableVehicles();
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 // Update vehicle
 exports.updateVehicle = async (req, res) => {
   try {
@@ -65,6 +95,18 @@ exports.deleteVehicle = async (req, res) => {
     );
     if (!deleted) return res.status(404).json({ message: "Vehicle not found" });
     res.json({ message: "Vehicle deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Customer: get all available vehicles from the same owner of a selected vehicle
+exports.getAvailableVehiclesByOwner = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getAvailableVehiclesByOwner(req.params.id);
+    if (!vehicles) return res.status(404).json({ message: "Vehicle not found" });
+
+    res.json(vehicles);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

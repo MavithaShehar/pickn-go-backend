@@ -1,5 +1,6 @@
 const ComplaintService = require('../services/complaint.service');
 const { COMPLAINT_STATUS } = require('../config/complaint');
+const Complaint = require('../models/complaint.model');
 
 class ComplaintController {
 

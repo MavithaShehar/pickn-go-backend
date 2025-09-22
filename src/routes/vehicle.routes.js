@@ -5,6 +5,10 @@ const {
   getVehicleById,
   updateVehicle,
   deleteVehicle,
+  getAvailableVehicles,
+  getAllAvailableVehicles,   
+  getAllUnavailableVehicles,
+  getAvailableVehiclesByOwner
 } = require("../controllers/vehicle.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -12,7 +16,19 @@ const roleMiddleware = require("../middlewares/roleMiddleware");
 
 const router = express.Router();
 
-// Customer can also POST ( get upgraded to owner automatically)
+// Customer: view only available vehicles
+router.get("/available",authMiddleware,roleMiddleware("customer"),getAvailableVehicles);
+// Admin: view ALL available vehicles
+router.get("/admin/available",authMiddleware,roleMiddleware("admin"),getAllAvailableVehicles);
+
+// Admin: view ALL unavailable vehicles
+router.get("/admin/unavailable",authMiddleware,roleMiddleware("admin"),getAllUnavailableVehicles);
+
+// Customer: view all available vehicles of the owner of a selected vehicle
+router.get("/owner/:id/available",authMiddleware,roleMiddleware("customer"),getAvailableVehiclesByOwner);
+
+
+// Customer can also POST ( change owner automatically)
 router.post("/", authMiddleware, addVehicle);
 
 // Owner-only routes(get,put,delete)

@@ -28,7 +28,6 @@ router.post("/reset-password", resetPassword);
 // Protected
 router.get("/profile", authMiddleware, getProfile);
 router.delete("/profile", authMiddleware, deleteProfile);
-// router.put("/verify/:id", protect, admin, adminVerifyVehicle);
 
 
 
@@ -37,7 +36,6 @@ router.delete("/profile", authMiddleware, deleteProfile);
 router.get("/alluser", authMiddleware, roleMiddleware("admin"), getAllUsers);
 router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
 router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyUser);
-router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyVehicle);
 
 
 

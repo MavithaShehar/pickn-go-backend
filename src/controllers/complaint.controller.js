@@ -36,9 +36,7 @@ class ComplaintController {
       const { id } = req.params;
       const complaint = await ComplaintService.getComplaintById(id); 
       
-      if (!complaint) {
-        return res.status(404).json({ error: 'Complaint not found' });
-      }
+     
 
       res.json(complaint);
     } catch (error) {

@@ -47,6 +47,18 @@ class ComplaintService {
     }
   }
 
+   static async getComplaintById(id) {
+    try {
+      const complaint = await Complaint.findById(id).populate('user', 'firstname email');
+      if (!complaint) {
+        throw new Error('Complaint not found');
+      }
+      return complaint;
+    } catch (error) {
+      throw new Error(`Error fetching complaint: ${error.message}`);
+    }
+  }
+
   // Get complaints by status
   static async getComplaintsByStatus(status) {
     try {

@@ -19,8 +19,7 @@ exports.searchByLocation = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
-
+}; 
 // Search vehicles by price range
 exports.searchByPrice = async (req, res) => {
   try {

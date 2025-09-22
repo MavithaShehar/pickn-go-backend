@@ -1,7 +1,8 @@
 const Booking = require("../models/booking.model");
 const Vehicle = require("../models/vehicle.model");
+const User = require("../models/user.model");
 
-// helper: normalize to local date midnight (no time part)
+// Helper: normalize to local date midnight (no time part)
 function toDateOnly(d) {
   const dt = new Date(d);
   return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
@@ -10,17 +11,72 @@ function toDateOnly(d) {
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 // Create booking
+// async function createBooking(vehicleId, customerId, bookingStartDate, bookingEndDate) {
+//   const vehicle = await Vehicle.findById(vehicleId);
+//   if (!vehicle) throw new Error("Vehicle not found");
+//   if (vehicle.status !== "available") throw new Error("Vehicle is not available");
+
+//   // pricePerDay fallback: prefer pricePerDay, otherwise use price
+//   const pricePerDay = (typeof vehicle.pricePerDay !== "undefined") ? vehicle.pricePerDay : vehicle.price;
+//   if (pricePerDay == null || isNaN(pricePerDay)) throw new Error("Vehicle price per day is not defined");
+
+//   const today = toDateOnly(new Date());
+
+//   const start = toDateOnly(bookingStartDate);
+//   const end = toDateOnly(bookingEndDate);
+
+//   if (start < today) throw new Error("Start date cannot be in the past");
+//   if (end <= start) throw new Error("End date must be after start date");
+
+//   const existingBooking = await Booking.findOne({
+//     vehicleId,
+//     customerId,
+//     bookingStatus: { $in: ["pending", "confirmed"] },
+//   });
+//   if (existingBooking) throw new Error("You have already booked this vehicle");
+
+//   // dayCount = number of days between start and end (end exclusive)
+//   const dayCount = Math.round((end - start) / MS_PER_DAY);
+//   if (dayCount < 1) throw new Error("Booking must be at least 1 day");
+
+//   const totalPrice = dayCount * Number(pricePerDay);
+
+//   const booking = new Booking({
+//     vehicleId,
+//     customerId,
+//     bookingStartDate: start,
+//     bookingEndDate: end,
+//     totalPrice,
+//     bookingStatus: "pending",
+//   });
+
+//   await booking.save();
+
+//   // mark vehicle unavailable
+//   vehicle.status = "unavailable";
+//   await vehicle.save();
+
+//   return booking;
+// }
+
+
+// Create booking
 async function createBooking(vehicleId, customerId, bookingStartDate, bookingEndDate) {
+  // ✅ Verify customer exists and is verified
+  const customer = await User.findById(customerId);
+  if (!customer || customer.role !== "customer" || !customer.verificationStatus) {
+    throw new Error("Only verified customers can make bookings");
+  }
+
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) throw new Error("Vehicle not found");
   if (vehicle.status !== "available") throw new Error("Vehicle is not available");
 
-  // pricePerDay fallback: prefer pricePerDay, otherwise use price
+  // pricePerDay fallback
   const pricePerDay = (typeof vehicle.pricePerDay !== "undefined") ? vehicle.pricePerDay : vehicle.price;
   if (pricePerDay == null || isNaN(pricePerDay)) throw new Error("Vehicle price per day is not defined");
 
   const today = toDateOnly(new Date());
-
   const start = toDateOnly(bookingStartDate);
   const end = toDateOnly(bookingEndDate);
 
@@ -34,7 +90,6 @@ async function createBooking(vehicleId, customerId, bookingStartDate, bookingEnd
   });
   if (existingBooking) throw new Error("You have already booked this vehicle");
 
-  // dayCount = number of days between start and end (end exclusive)
   const dayCount = Math.round((end - start) / MS_PER_DAY);
   if (dayCount < 1) throw new Error("Booking must be at least 1 day");
 
@@ -51,11 +106,10 @@ async function createBooking(vehicleId, customerId, bookingStartDate, bookingEnd
 
   await booking.save();
 
-  // mark vehicle unavailable
-  vehicle.status = "unavailable";
-  await vehicle.save();
+  
 
-  return booking;
+  // 🔹 Populate vehicleId before returning (fix undefined in emails)
+  return await booking.populate("vehicleId");
 }
 
 // Customer edit booking
@@ -87,7 +141,7 @@ async function updateBooking(bookingId, customerId, updates) {
   booking.totalPrice = dayCount * Number(pricePerDay);
 
   await booking.save();
-  return booking;
+  return booking.populate("vehicleId");
 }
 
 // Customer delete booking
@@ -119,17 +173,17 @@ async function manageBookingByOwner(bookingId, ownerId, action) {
   }
 
   await booking.save();
-  return booking;
+  return booking.populate("vehicleId");
 }
 
 // Customer bookings (excluding cancelled) — short response
 async function getCustomerBookings(customerId) {
   const bookings = await Booking.find({ customerId, bookingStatus: { $ne: "cancelled" } })
-    .populate({ path: "vehicleId", select: "_id name price" });
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" });
 
   return bookings.map(b => ({
     _id: b._id,
-    vehicleId: { _id: b.vehicleId._id, name: b.vehicleId.name },
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
@@ -143,12 +197,12 @@ async function getOwnerBookings(ownerId) {
   const vehicleIds = vehicles.map(v => v._id);
 
   const bookings = await Booking.find({ vehicleId: { $in: vehicleIds } })
-    .populate({ path: "vehicleId", select: "_id name price" })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
     .populate({ path: "customerId", select: "_id firstName lastName" });
 
   return bookings.map(b => ({
     _id: b._id,
-    vehicleId: { _id: b.vehicleId._id, name: b.vehicleId.name },
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
@@ -160,12 +214,12 @@ async function getOwnerBookings(ownerId) {
 // Admin: get all confirmed bookings
 async function getConfirmedBookings() {
   const bookings = await Booking.find({ bookingStatus: "confirmed" })
-    .populate({ path: "vehicleId", select: "_id name price" })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
     .populate({ path: "customerId", select: "_id firstName lastName" });
 
   return bookings.map(b => ({
     _id: b._id,
-    vehicleId: { _id: b.vehicleId._id, name: b.vehicleId.name },
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
@@ -179,30 +233,28 @@ async function getBookingStatus(bookingId, user) {
   const booking = await Booking.findById(bookingId).populate("vehicleId");
   if (!booking) throw new Error("Booking not found");
 
-  // Customers can see only their bookings
   if (user.role === "customer" && booking.customerId.toString() !== user.id) {
     throw new Error("Not authorized");
   }
 
-  // Owners can see bookings for their vehicles - optional check not enforced here
   return { bookingStatus: booking.bookingStatus };
 }
+
 // Owner get single booking
 async function getOwnerBookingById(ownerId, bookingId) {
   const booking = await Booking.findById(bookingId)
-    .populate({ path: "vehicleId", select: "_id name ownerId price" })
+    .populate({ path: "vehicleId", select: "_id title year ownerId pricePerDay" })
     .populate({ path: "customerId", select: "_id firstName lastName" });
 
   if (!booking) throw new Error("Booking not found");
 
-  // Verify this booking belongs to owner's vehicle
   if (booking.vehicleId.ownerId.toString() !== ownerId) {
     throw new Error("Not authorized");
   }
 
   return {
     _id: booking._id,
-    vehicleId: { _id: booking.vehicleId._id, name: booking.vehicleId.name },
+    vehicleId: { _id: booking.vehicleId._id, title: booking.vehicleId.title, year: booking.vehicleId.year },
     customerId: { _id: booking.customerId._id, name: `${booking.customerId.firstName} ${booking.customerId.lastName}` },
     bookingStartDate: booking.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: booking.bookingEndDate.toISOString().split("T")[0],

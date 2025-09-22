@@ -9,9 +9,11 @@ const vehicleSchema = new mongoose.Schema({
   year: { type: Number },
   seats: { type: Number },
   status: { type: String, enum: ["available", "unavailable"], default: "available" },
+   verificationStatus: { type: Boolean, default: false },
   vehicleTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "VehicleType" },
   fuelTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "FuelType" },
-  location: { type: String, required: true },
+  city: { type: String, required: true },
+  district: { type: String, required: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Vehicle", vehicleSchema);

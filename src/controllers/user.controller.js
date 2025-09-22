@@ -201,35 +201,6 @@ const adminVerifyUser = async (req, res, next) => {
   }
 };
 
-// Admin Verify Vehicle
-const adminVerifyVehicle = async (req, res) => {
-  try {
-    const vehicle = await Vehicle.findById(req.params.id).populate("ownerId");
-
-    if (!vehicle) {
-      return res.status(404).json({ message: "Vehicle not found" });
-    }
-
-    vehicle.verificationStatus = true;
-    await vehicle.save();
-
-    // Send verification email to owner
-    if (vehicle.ownerId && vehicle.ownerId.email) {
-      await sendEmail(
-        vehicle.ownerId.email,
-        "Vehicle Verified",
-        `Your vehicle "${vehicle.title}" has been verified.`,
-        `<p>Hello ${vehicle.ownerId.firstName},</p>
-         <p>Your vehicle <b>${vehicle.title}</b> has been <b>verified</b> by admin and is now available for customers.</p>
-         <p>Thank you,<br/>PicknGo Team</p>`
-      );
-    }
-
-    res.json({ message: "Vehicle verified successfully and email sent" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
 
 
 // Admin Suspend User
@@ -270,5 +241,4 @@ module.exports = {
   adminSuspendUser,
   getUnverifiedUsers,
   getAllUsers,
-  adminVerifyVehicle,
 };

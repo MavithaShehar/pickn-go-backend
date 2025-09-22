@@ -2,9 +2,8 @@ const Review = require("../models/review.model");
 const Booking = require("../models/booking.model");
 const Vehicle = require("../models/vehicle.model");
 
-/**
- * Create a new review (only if user booked this vehicle)
- */
+//Create a new review (only if user booked this vehicle)
+
 async function createReview(userId, bookingId, vehicleId, rating, comment) {
   // Verify booking belongs to this user
   const booking = await Booking.findOne({ _id: bookingId, userId });
@@ -20,9 +19,7 @@ async function createReview(userId, bookingId, vehicleId, rating, comment) {
   return await review.save();
 }
 
-/**
- * Update review (only if review belongs to user)
- */
+//Update review (only if review belongs to user)
 async function updateReview(userId, reviewId, updateData) {
   const review = await Review.findOneAndUpdate(
     { _id: reviewId, userId },
@@ -33,9 +30,8 @@ async function updateReview(userId, reviewId, updateData) {
   return review;
 }
 
-/**
- * Delete review (customer can delete own review)
- */
+//Delete review (customer can delete own review)
+ 
 async function deleteReview(userId, reviewId) {
   const review = await Review.findOneAndDelete({ _id: reviewId, userId });
   if (!review) throw new Error("Review not found or not yours");
@@ -59,9 +55,8 @@ async function getReviewsByVehicle(user, vehicleId) {
     .populate("bookingId", "startDate endDate");
 }
 
-/**
- * Admin delete any review
- */
+//Admin delete any review
+
 async function adminDeleteReview(reviewId) {
   return await Review.findByIdAndDelete(reviewId);
 }

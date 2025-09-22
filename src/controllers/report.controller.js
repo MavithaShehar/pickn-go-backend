@@ -145,21 +145,21 @@ class ReportController {
     static async downloadUserReportPDF(req, res) {
         try {
             const report = await ReportService.generateUserReport();
-            const users = report.users;
+
+            const users = report.users.filter(u => u.role === "customer");
 
             const doc = new PDFDocument({ margin: 30, size: "A4" });
 
             res.setHeader("Content-Type", "application/pdf");
-            res.setHeader("Content-Disposition", "attachment; filename=PicknGo_Users_Details.pdf");
+            res.setHeader("Content-Disposition", "attachment; filename=PicknGo_Customers_Details.pdf");
 
             doc.pipe(res);
 
-            doc.fontSize(20).text("PicknGo Users Details", { align: "center" });
+            doc.fontSize(20).text("PicknGo Customers Details", { align: "center" });
             doc.moveDown();
 
-            doc.fontSize(12).text(`Total Users: ${report.totalUsers}`);
+            doc.fontSize(12);
             doc.text(`Total Customers: ${report.totalCustomers}`);
-            doc.text(`Total Owners: ${report.totalOwners}`);
             doc.moveDown();
 
             users.forEach((u, i) => {
@@ -178,7 +178,7 @@ class ReportController {
     static async downloadUserReportExcel(req, res) {
         try {
             const report = await ReportService.generateUserReport();
-            const users = report.users;
+            const users = report.users.filter(u => u.role === "customer");
 
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet("PicknGo Users Details");

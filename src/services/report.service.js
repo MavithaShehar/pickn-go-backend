@@ -42,15 +42,15 @@ class ReportService {
 
     static async generateUserReport() {
         const users = await User.find(
-            { role: { $in: ["customer", "owner"] } },
+            { role: { $in: ["customer"] } },
             "-password -resetOTP -resetOTPExpires" // exclude sensitive fields
         );
 
         const totalUsers = users.length;
         const totalCustomers = users.filter(u => u.role === "customer").length;
-        const totalOwners = users.filter(u => u.role === "owner").length;
 
-        return { totalUsers, totalCustomers, totalOwners, users };
+
+        return { totalUsers, totalCustomers, users };
     }
 
     // Generate Vehicle Owners Report

@@ -7,14 +7,42 @@ const sendEmail = require("../utils/sendEmail");
 // Register
 const registerUser = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phoneNumber, password, role, address } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      password,
+      role, // no fallback here — model default handles it
+      addressLine1,
+      addressLine2,
+      postalCode,
+      // legacy support:
+      address, // if old clients still send single-line "address"
+    } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const emailNorm = (email || "").trim().toLowerCase();
+
+    // Uniqueness checks
+    const existingUser = await User.findOne({ email: emailNorm });
     if (existingUser) {
       if (existingUser.status === "suspended") {
-        return res.status(403).json({ message: "This account is suspended. You cannot register again." });
+        return res.status(403).json({
+          message: "This account is suspended. You cannot register again.",
+        });
       }
       return res.status(400).json({ message: "Email already in use" });
+    }
+    // Optional but recommended since phoneNumber is unique in schema
+    const existingPhone = await User.findOne({ phoneNumber });
+    if (existingPhone) {
+      return res.status(400).json({ message: "Phone number already in use" });
+    }
+
+    // Require addressLine1 (fallback to legacy "address" if provided)
+    const line1 = (addressLine1 ?? address ?? "").trim();
+    if (!line1) {
+      return res.status(400).json({ message: "addressLine1 is required" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -22,40 +50,43 @@ const registerUser = async (req, res, next) => {
     const newUser = new User({
       firstName,
       lastName,
-      email,
+      email: emailNorm,
       phoneNumber,
-      address,
       password: hashedPassword,
-      role,
-      verificationStatus: false, // default
-      status: "active"           // default
+      role, // schema default => "customer" if missing
+      addressLine1: line1,
+      addressLine2: (addressLine2 ?? "").trim(),
+      postalCode: (postalCode ?? "").trim(),
+      verificationStatus: false,
+      status: "active",
     });
 
     await newUser.save();
 
-    res.status(201).json({ message: "User registered successfully", user: newUser });
+    // return without sensitive fields
+    const safeUser = newUser.toObject();
+    delete safeUser.password;
+    delete safeUser.resetOTP;
+    delete safeUser.resetOTPExpires;
+
+    res.status(201).json({ message: "User registered successfully", user: safeUser });
   } catch (err) {
     next(err);
   }
 };
 
-
-
 // Login
 const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const emailNorm = (req.body.email || "").trim().toLowerCase();
+    const { password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: emailNorm });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     if (user.status === "suspended") {
       return res.status(403).json({ message: "Account is suspended" });
     }
-
-    // if (user.role !== "admin" && !user.verificationStatus) {
-    //   return res.status(403).json({ message: "Account is not verified yet" });
-    // }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
@@ -63,29 +94,29 @@ const loginUser = async (req, res, next) => {
     res.json({
       id: user._id,
       email: user.email,
-      role: user.role,
-      token: generateToken(user._id, user.role),
+      role: user.role, // should be set (model default covers missing)
+      token: generateToken(user._id, user.role || "customer"),
     });
   } catch (err) {
     next(err);
   }
 };
 
-// Get all users
+// Get all users (hide sensitive fields)
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find(); // get all users
+    const users = await User.find().select("-password -resetOTP -resetOTPExpires");
     res.json(users);
   } catch (err) {
     next(err);
   }
 };
 
-
-// Get Profile
+// Get Profile (hide sensitive fields)
 const getProfile = async (req, res, next) => {
   try {
-    res.json(req.user);
+    const user = await User.findById(req.user._id).select("-password -resetOTP -resetOTPExpires");
+    res.json(user);
   } catch (err) {
     next(err);
   }
@@ -114,9 +145,8 @@ const adminDeleteUser = async (req, res, next) => {
 // Forgot Password - Generate OTP
 const forgotPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
-
-    const user = await User.findOne({ email });
+    const emailNorm = (req.body.email || "").trim().toLowerCase();
+    const user = await User.findOne({ email: emailNorm });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const otp = crypto.randomInt(100000, 999999).toString();
@@ -140,10 +170,11 @@ const forgotPassword = async (req, res, next) => {
 // Reset Password
 const resetPassword = async (req, res, next) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const emailNorm = (req.body.email || "").trim().toLowerCase();
+    const { otp, newPassword } = req.body;
 
     const user = await User.findOne({
-      email,
+      email: emailNorm,
       resetOTP: otp,
       resetOTPExpires: { $gt: Date.now() },
     });
@@ -162,21 +193,6 @@ const resetPassword = async (req, res, next) => {
 };
 
 // Admin Verify User
-// const adminVerifyUser = async (req, res, next) => {
-//   try {
-//     const user = await User.findById(req.params.id);
-//     if (!user) return res.status(404).json({ message: "User not found" });
-
-//     user.verificationStatus = true;
-//     await user.save();
-
-//     res.json({ message: "User verified successfully" });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// Admin Verify User
 const adminVerifyUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -185,7 +201,6 @@ const adminVerifyUser = async (req, res, next) => {
     user.verificationStatus = true;
     await user.save();
 
-    // Send verification email
     await sendEmail(
       user.email,
       "Account Verified",
@@ -200,8 +215,6 @@ const adminVerifyUser = async (req, res, next) => {
     next(err);
   }
 };
-
-
 
 // Admin Suspend User
 const adminSuspendUser = async (req, res, next) => {
@@ -218,16 +231,17 @@ const adminSuspendUser = async (req, res, next) => {
   }
 };
 
+// Get all unverified users (hide sensitive fields)
 const getUnverifiedUsers = async (req, res, next) => {
   try {
-    const users = await User.find({ verificationStatus: false });
-
+    const users = await User.find({ verificationStatus: false }).select(
+      "-password -resetOTP -resetOTPExpires"
+    );
     res.json(users);
   } catch (err) {
     next(err);
   }
 };
-
 
 module.exports = {
   registerUser,

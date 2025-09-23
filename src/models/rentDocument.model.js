@@ -2,17 +2,13 @@ const mongoose = require("mongoose");
 
 const rentDocumentSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-
-  // Default document type is 'license'
+  bookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking", required: true },
   documentType: { type: String, default: "license", required: true },
-
-  documentverifiedStatus: { type: Boolean, default: false },
-
-  // Default license field (path can be empty initially)
+  documentVerifiedStatus: { type: Boolean, default: false },
   documents: {
-    license: { type: String, default: "" },
-  }
-
+    license: { type: Buffer }, // store file as binary
+    licenseType: { type: String }, // store MIME type
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("RentDocument", rentDocumentSchema);

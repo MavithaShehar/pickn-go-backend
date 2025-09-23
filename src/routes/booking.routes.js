@@ -9,10 +9,12 @@ const {
   getBookingStatus,
   getOwnerBookingById,
   getConfirmedBookings,
+  uploadDocuments, // ⬅️ New controller method
 } = require("../controllers/booking.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+const upload = require("../middlewares/upload"); // ⬅️ Multer middleware for documents
 
 const router = express.Router();
 
@@ -34,6 +36,15 @@ router.put("/:id", authMiddleware, roleMiddleware("customer"), updateBooking);
 
 // Delete a booking (customer)
 router.delete("/:id", authMiddleware, roleMiddleware("customer"), deleteBooking);
+
+// Upload required documents (ID + License) after booking
+router.post(
+  "/:bookingId/upload-documents",
+  authMiddleware,
+  roleMiddleware("customer"),
+  upload,
+  uploadDocuments
+);
 
 // =====================
 // Owner Routes

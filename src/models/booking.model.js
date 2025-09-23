@@ -7,12 +7,6 @@ const bookingSchema = new mongoose.Schema({
   bookingEndDate: { type: Date, required: true },
   totalPrice: { type: Number, required: true },
   bookingStatus: { type: String, enum: ["pending", "confirmed", "cancelled"], default: "pending" },
-
-  // New field for document uploads
-  documents: {
-    idProof: { type: String },
-    license: { type: String },
-  }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Booking", bookingSchema);

@@ -76,19 +76,19 @@ async function createBooking(vehicleId, customerId, bookingStartDate, bookingEnd
   const pricePerDay = (typeof vehicle.pricePerDay !== "undefined") ? vehicle.pricePerDay : vehicle.price;
   if (pricePerDay == null || isNaN(pricePerDay)) throw new Error("Vehicle price per day is not defined");
 
-  const today = toDateOnly(new Date());
-  const start = toDateOnly(bookingStartDate);
-  const end = toDateOnly(bookingEndDate);
+   // normalize dates to UTC midnight (avoid timezone shifts when converting to ISO)
+  const toDateOnlyUTC = (dateInput) => {
+    const d = new Date(dateInput);
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  };
 
+  const today = toDateOnlyUTC(new Date());
+  const start = toDateOnlyUTC(bookingStartDate);
+  const end = toDateOnlyUTC(bookingEndDate);
   if (start < today) throw new Error("Start date cannot be in the past");
   if (end <= start) throw new Error("End date must be after start date");
 
-  const existingBooking = await Booking.findOne({
-    vehicleId,
-    customerId,
-    bookingStatus: { $in: ["pending", "confirmed"] },
-  });
-  if (existingBooking) throw new Error("You have already booked this vehicle");
+  
 
   const dayCount = Math.round((end - start) / MS_PER_DAY);
   if (dayCount < 1) throw new Error("Booking must be at least 1 day");

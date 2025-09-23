@@ -3,7 +3,7 @@ const sendEmail = require("../utils/sendEmail");
 const { bookingConfirmation, bookingConfirmationText } = require("../utils/emailTemplates");
 const User = require("../models/user.model");
 const Booking = require("../models/booking.model");
-const RentDocument = require("../models/rentDocument.model"); // <-- NEW import
+
 
 // ================================
 // Customer Controllers
@@ -133,70 +133,5 @@ exports.getConfirmedBookings = async (req, res) => {
   }
 };
 
-// ================================
-// 📌 Upload License Only (Customer)
-// ================================
-exports.uploadLicense = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
 
-    // Check if license file is provided
-    if (!req.file) {
-      return res.status(400).json({ message: "License file is required" });
-    }
 
-    const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    // Ensure documents object exists
-    if (!booking.documents) booking.documents = {};
-
-    // Save license path
-    booking.documents.license = req.file.path;
-    await booking.save();
-
-    res.status(200).json({
-      message: "License uploaded successfully",
-      license: booking.documents.license,
-    });
-  } catch (err) {
-    console.error("❌ Upload error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// ================================
-// 📌 Upload License to RentDocument (Customer)
-// ================================
-exports.uploadLicenseToRentDocument = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-
-    if (!req.file) {
-      return res.status(400).json({ message: "License file is required" });
-    }
-
-    // Check if booking exists
-    const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    // Either update existing RentDocument or create new
-    const filter = { userId: req.user.id, bookingId: booking._id, documentType: "license" };
-    const update = { documents: { license: req.file.path } };
-    const options = { new: true, upsert: true }; // create if not exists
-
-    const document = await RentDocument.findOneAndUpdate(filter, update, options);
-
-    res.status(200).json({
-      message: "License uploaded successfully to RentDocument",
-      license: document.documents.license,
-    });
-  } catch (err) {
-    console.error("❌ RentDocument upload error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};

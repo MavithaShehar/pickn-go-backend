@@ -117,15 +117,61 @@ class ComplaintController {
       res.status(400).json({ error: error.message });
     }
   }
+
+
+
+// Get complaint by ID
+static async getComplaintById(req, res) {
+  try {
+    const { id } = req.params;
+    const complaint = await ComplaintService.getComplaintById(id); 
+    
+    // No need to check !complaint here — service throws error if not found
+    res.json(complaint);
+  } catch (error) {
+    if (error.message.includes('not found')) {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }
 
+  // DELETE: Delete a complaint by ID
+  static async deleteComplaint(req, res) {
+    try {
+      const { id } = req.params;
 
-ComplaintService.getComplaintById = async function(id) {
-  try {
-    return await Complaint.findById(id).populate('user', 'firstname email');
-  } catch (error) {
-    throw new Error(`Error fetching complaint: ${error.message}`);
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Complaint ID is required'
+        });
+      }
+
+      const deletedComplaint = await ComplaintService.deleteComplaint(id);
+
+      if (!deletedComplaint) {
+        return res.status(404).json({
+          success: false,
+          message: 'Complaint not found'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Complaint deleted successfully',
+        data: deletedComplaint
+      });
+    } catch (error) {
+      console.error('Error in deleteComplaint controller:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
   }
-};
 
+}
 module.exports = ComplaintController;

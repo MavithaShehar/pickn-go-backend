@@ -47,7 +47,8 @@ class ComplaintService {
     }
   }
 
-   static async getComplaintById(id) {
+   // ✅ GET COMPLAINT BY ID — NOW INSIDE CLASS
+  static async getComplaintById(id) {
     try {
       const complaint = await Complaint.findById(id).populate('user', 'firstname email');
       if (!complaint) {

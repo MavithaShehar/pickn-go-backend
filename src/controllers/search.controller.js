@@ -1,24 +1,29 @@
 // searchController.js
 const Vehicle = require("../models/vehicle.model");
 
-// Search vehicles by location
+// Search vehicles by location (now searches city OR district)
 exports.searchByLocation = async (req, res) => {
   try {
     const { location } = req.query;
-    if (!location) return res.status(400).json({ message: "Location is required" });
+    if (!location) {
+      return res.status(400).json({ message: "Location is required" });
+    }
 
     const vehicles = await Vehicle.find({
       status: "available",
-      location: { $regex: location, $options: "i" } // case-insensitive search
+      $or: [
+        { city: { $regex: location, $options: "i" } },
+        { district: { $regex: location, $options: "i" } }
+      ]
     })
-    .populate("vehicleTypeId", "name")
-    .populate("fuelTypeId", "type")
-    .populate("ownerId", "firstName lastName");
+      .populate("vehicleTypeId", "name")
+      .populate("fuelTypeId", "type")
+      .populate("ownerId", "firstName lastName");
 
     res.json(vehicles);
   } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // Search vehicles by price range

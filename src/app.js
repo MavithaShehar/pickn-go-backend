@@ -12,6 +12,7 @@ const fuelTypeRoutes = require("./routes/fuelType.routes");
 const complaintRoutes = require('./routes/complaint.routes');
 const searchRoutes = require("./routes/search.routes");
 const bookingRoutes = require("./routes/booking.routes");
+const reviewRoutes = require("./routes/review.routes");
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use('/uploads', express.static('uploads'));
+app.use("/api/reviews", reviewRoutes);
 
 // Not Found Handler
 app.use(notFoundMiddleware);

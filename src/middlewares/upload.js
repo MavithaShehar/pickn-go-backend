@@ -2,7 +2,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// Use existing uploads folder -> create "documents" subfolder inside it
+// Ensure upload directory exists
 const documentsPath = path.join("uploads", "documents");
 if (!fs.existsSync(documentsPath)) {
   fs.mkdirSync(documentsPath, { recursive: true });
@@ -10,26 +10,18 @@ if (!fs.existsSync(documentsPath)) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, documentsPath); // store in uploads/documents
+    cb(null, documentsPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix);
+    cb(null, "license-" + uniqueSuffix);
   },
 });
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only JPEG, PNG, and PDF files are allowed"), false);
-  }
+  if (allowedTypes.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Only JPEG, PNG, and PDF files are allowed"), false);
 };
 
-const upload = multer({ storage, fileFilter });
-
-module.exports = upload.fields([
-  { name: "idProof", maxCount: 1 },
-  { name: "license", maxCount: 1 },
-]);
+module.exports = multer({ storage, fileFilter }).single("license"); // Must match form-data key

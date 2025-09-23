@@ -2,6 +2,7 @@ const bookingService = require("../services/booking.service");
 const sendEmail = require("../utils/sendEmail");
 const { bookingConfirmation, bookingConfirmationText } = require("../utils/emailTemplates");
 const User = require("../models/user.model");
+const Booking = require("../models/booking.model"); // ⬅️ required for updating documents
 
 // Customer
 exports.createBooking = async (req, res) => {
@@ -21,8 +22,8 @@ exports.createBooking = async (req, res) => {
         await sendEmail({
           to: customer.email,
           subject: "Booking Confirmation - PicknGo 🚗",
-          text: bookingConfirmationText(customer, booking), // pass full customer
-          html: bookingConfirmation(customer, booking),     // pass full customer
+          text: bookingConfirmationText(customer, booking),
+          html: bookingConfirmation(customer, booking),
         });
         console.log("✅ Booking confirmation email sent to:", customer.email);
       } else {
@@ -112,5 +113,39 @@ exports.getOwnerBookingById = async (req, res) => {
     res.json(booking);
   } catch (err) {
     res.status(404).json({ message: err.message });
+  }
+};
+
+// ================================
+// 📌 New: Upload Required Documents
+// ================================
+exports.uploadDocuments = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    if (!req.files || !req.files.idProof || !req.files.license) {
+      return res.status(400).json({ message: "ID Proof and License are required" });
+    }
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Save document paths
+    booking.documents = {
+      idProof: req.files.idProof[0].path,
+      license: req.files.license[0].path,
+    };
+
+    await booking.save();
+
+    res.status(200).json({
+      message: "Documents uploaded successfully",
+      documents: booking.documents,
+    });
+  } catch (err) {
+    console.error("❌ Upload error:", err.message);
+    res.status(500).json({ message: "Server error" });
   }
 };

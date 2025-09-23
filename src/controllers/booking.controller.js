@@ -2,9 +2,14 @@ const bookingService = require("../services/booking.service");
 const sendEmail = require("../utils/sendEmail");
 const { bookingConfirmation, bookingConfirmationText } = require("../utils/emailTemplates");
 const User = require("../models/user.model");
-const Booking = require("../models/booking.model"); // ⬅️ required for updating documents
+const Booking = require("../models/booking.model");
+const RentDocument = require("../models/rentDocument.model"); // <-- NEW import
 
-// Customer
+// ================================
+// Customer Controllers
+// ================================
+
+// Create a booking
 exports.createBooking = async (req, res) => {
   try {
     const { vehicleId, bookingStartDate, bookingEndDate } = req.body;
@@ -15,7 +20,7 @@ exports.createBooking = async (req, res) => {
       bookingEndDate
     );
 
-    // ✅ Send email notification only after booking is created
+    // Send booking confirmation email
     try {
       const customer = await User.findById(req.user.id);
       if (customer && customer.email) {
@@ -39,6 +44,7 @@ exports.createBooking = async (req, res) => {
   }
 };
 
+// Update a booking (customer)
 exports.updateBooking = async (req, res) => {
   try {
     const booking = await bookingService.updateBooking(req.params.id, req.user.id, req.body);
@@ -48,6 +54,7 @@ exports.updateBooking = async (req, res) => {
   }
 };
 
+// Delete a booking (customer)
 exports.deleteBooking = async (req, res) => {
   try {
     const booking = await bookingService.deleteBooking(req.params.id, req.user.id);
@@ -57,6 +64,7 @@ exports.deleteBooking = async (req, res) => {
   }
 };
 
+// Get all bookings for logged-in customer
 exports.getCustomerBookings = async (req, res) => {
   try {
     const bookings = await bookingService.getCustomerBookings(req.user.id);
@@ -66,28 +74,7 @@ exports.getCustomerBookings = async (req, res) => {
   }
 };
 
-// Owner
-exports.getOwnerBookings = async (req, res) => {
-  try {
-    const bookings = await bookingService.getOwnerBookings(req.user.id);
-    res.json(bookings);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.manageBookingByOwner = async (req, res) => {
-  try {
-    const { action } = req.body; // confirm or cancel
-    const booking = await bookingService.manageBookingByOwner(req.params.id, req.user.id, action);
-    // (No email notification for owner actions)
-    res.json({ message: `Booking ${action}`, booking });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-// Get booking status (customer only)
+// Get booking status by ID (customer)
 exports.getBookingStatus = async (req, res) => {
   try {
     const status = await bookingService.getBookingStatus(req.params.id, req.user);
@@ -97,16 +84,32 @@ exports.getBookingStatus = async (req, res) => {
   }
 };
 
-exports.getConfirmedBookings = async (req, res) => {
+// ================================
+// Owner Controllers
+// ================================
+
+// Get all bookings for owner
+exports.getOwnerBookings = async (req, res) => {
   try {
-    const bookings = await bookingService.getConfirmedBookings();
+    const bookings = await bookingService.getOwnerBookings(req.user.id);
     res.json(bookings);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Owner get booking using one id
+// Owner manages a booking (confirm/cancel)
+exports.manageBookingByOwner = async (req, res) => {
+  try {
+    const { action } = req.body; // confirm or cancel
+    const booking = await bookingService.manageBookingByOwner(req.params.id, req.user.id, action);
+    res.json({ message: `Booking ${action}`, booking });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// Get a specific booking by ID for owner
 exports.getOwnerBookingById = async (req, res) => {
   try {
     const booking = await bookingService.getOwnerBookingById(req.user.id, req.params.id);
@@ -117,14 +120,29 @@ exports.getOwnerBookingById = async (req, res) => {
 };
 
 // ================================
-// 📌 New: Upload Required Documents
+// Admin Controllers
 // ================================
-exports.uploadDocuments = async (req, res) => {
+
+// Get all confirmed bookings
+exports.getConfirmedBookings = async (req, res) => {
+  try {
+    const bookings = await bookingService.getConfirmedBookings();
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ================================
+// 📌 Upload License Only (Customer)
+// ================================
+exports.uploadLicense = async (req, res) => {
   try {
     const { bookingId } = req.params;
 
-    if (!req.files || !req.files.idProof || !req.files.license) {
-      return res.status(400).json({ message: "ID Proof and License are required" });
+    // Check if license file is provided
+    if (!req.file) {
+      return res.status(400).json({ message: "License file is required" });
     }
 
     const booking = await Booking.findById(bookingId);
@@ -132,20 +150,53 @@ exports.uploadDocuments = async (req, res) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    // Save document paths
-    booking.documents = {
-      idProof: req.files.idProof[0].path,
-      license: req.files.license[0].path,
-    };
+    // Ensure documents object exists
+    if (!booking.documents) booking.documents = {};
 
+    // Save license path
+    booking.documents.license = req.file.path;
     await booking.save();
 
     res.status(200).json({
-      message: "Documents uploaded successfully",
-      documents: booking.documents,
+      message: "License uploaded successfully",
+      license: booking.documents.license,
     });
   } catch (err) {
-    console.error("❌ Upload error:", err.message);
+    console.error("❌ Upload error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ================================
+// 📌 Upload License to RentDocument (Customer)
+// ================================
+exports.uploadLicenseToRentDocument = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "License file is required" });
+    }
+
+    // Check if booking exists
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Either update existing RentDocument or create new
+    const filter = { userId: req.user.id, bookingId: booking._id, documentType: "license" };
+    const update = { documents: { license: req.file.path } };
+    const options = { new: true, upsert: true }; // create if not exists
+
+    const document = await RentDocument.findOneAndUpdate(filter, update, options);
+
+    res.status(200).json({
+      message: "License uploaded successfully to RentDocument",
+      license: document.documents.license,
+    });
+  } catch (err) {
+    console.error("❌ RentDocument upload error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

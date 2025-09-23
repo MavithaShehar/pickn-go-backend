@@ -46,18 +46,14 @@ router.delete("/:reviewId", authReview, async (req, res) => {
 });
 
 
-
-// Get reviews for a vehicle 
-router.get("/vehicle/:vehicleId", authReview, async (req, res) => {
+// Get reviews
+router.get("/", authReview, async (req, res) => {
   try {
     let reviews;
     if (req.user.role === "owner") {
-      reviews = await reviewService.getReviewsForOwner(
-        req.user.id,
-        req.params.vehicleId
-      );
+      reviews = await reviewService.getReviewsForOwner(req.user.id);
     } else if (req.user.role === "admin") {
-      reviews = await reviewService.getReviewsForAdmin(req.params.vehicleId);
+      reviews = await reviewService.getAllReviews();
     } else {
       return res.status(403).json({ message: "Forbidden" });
     }

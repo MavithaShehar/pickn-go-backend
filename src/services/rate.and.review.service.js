@@ -2,11 +2,8 @@ const Review = require("../models/review.model");
 const Booking = require("../models/booking.model");
 const Vehicle = require("../models/vehicle.model");
 
-
-
 async function createReview(userId, bookingId, vehicleId, rating, comment) {
-  
-  const booking = await Booking.findOne({ _id: bookingId, customerId:userId });
+  const booking = await Booking.findOne({ _id: bookingId, customerId: userId });
   if (!booking) throw new Error("You are not allowed to review this booking");
 
   const review = new Review({
@@ -19,7 +16,7 @@ async function createReview(userId, bookingId, vehicleId, rating, comment) {
   return await review.save();
 }
 
-//Update review 
+// Update review
 async function updateReview(userId, reviewId, updateData) {
   const review = await Review.findOneAndUpdate(
     { _id: reviewId, userId },
@@ -30,33 +27,33 @@ async function updateReview(userId, reviewId, updateData) {
   return review;
 }
 
-//Delete review 
- 
+// Delete review
 async function deleteReview(userId, reviewId) {
   const review = await Review.findOneAndDelete({ _id: reviewId, userId });
   if (!review) throw new Error("Review not found or not yours");
   return review;
 }
 
-/**
- * Get all reviews for a vehicle
- * - If owner, only their vehicles
- * - If admin, any vehicle
- */
-async function getReviewsByVehicle(user, vehicleId) {
-  // If user is owner, check ownership
-  if (user.role === "owner") {
-    const vehicle = await Vehicle.findOne({ _id: vehicleId, ownerId: user.id });
-    if (!vehicle) throw new Error("This vehicle does not belong to you");
-  }
+// Owner: get reviews only for their vehicles
+async function getReviewsForOwner(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId }).select("_id");
+  const vehicleIds = vehicles.map(v => v._id);
 
-  return await Review.find({ vehicleId })
+  return await Review.find({ vehicleId: { $in: vehicleIds } })
     .populate("userId", "firstName lastName")
+    .populate("vehicleId", "name model")
     .populate("bookingId", "startDate endDate");
 }
 
-//Admin delete any review
+// Admin: get all reviews
+async function getAllReviews() {
+  return await Review.find()
+    .populate("userId", "firstName lastName")
+    .populate("vehicleId", "name model")
+    .populate("bookingId", "startDate endDate");
+}
 
+// Admin delete any review
 async function adminDeleteReview(reviewId) {
   return await Review.findByIdAndDelete(reviewId);
 }
@@ -65,6 +62,7 @@ module.exports = {
   createReview,
   updateReview,
   deleteReview,
-  getReviewsByVehicle,
+  getReviewsForOwner,
+  getAllReviews,
   adminDeleteReview,
 };

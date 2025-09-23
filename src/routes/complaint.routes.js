@@ -22,6 +22,8 @@ router.get('/status/:status', roleMiddleware("admin,"),ComplaintController.getCo
 // Get complaint by ID (specific)
 router.get('/:id', roleMiddleware( "admin"), ComplaintController.getComplaintById);
 
+router.get('/:id', roleMiddleware( "customer"), ComplaintController.getComplaintById);
+
 // Update complaint status (PATCH)
 router.patch('/:id/status',roleMiddleware("admin"), ComplaintController.updateComplaintStatus);
 

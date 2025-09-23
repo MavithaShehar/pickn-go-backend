@@ -128,6 +128,21 @@ class ComplaintService {
       throw new Error(`Error updating complaint status: ${error.message}`);
     }
   }
+   // Delete complaint by ID
+  static async deleteComplaint(id) {
+    try {
+      const complaint = await Complaint.findByIdAndDelete(id);
+
+      if (!complaint) {
+        return null; // Not found
+      }
+
+      return complaint;
+    } catch (error) {
+      throw new Error(`Failed to delete complaint: ${error.message}`);
+    }
+  }
+
 }
 
 module.exports = ComplaintService;

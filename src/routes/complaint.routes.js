@@ -34,6 +34,9 @@ router.put('/:id',roleMiddleware("customer"),uploadMiddleware.upload.array('imag
 // Get all complaints (admin only)
 router.get('/',roleMiddleware("admin"), ComplaintController.getAllComplaints);
 
+// ✅ DELETE complaint — admin only
+router.delete('/:id', roleMiddleware("customer"), ComplaintController.deleteComplaint);
+
 
 
 module.exports = router;

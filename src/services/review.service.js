@@ -16,7 +16,7 @@ async function createReview(userId, bookingId, vehicleId, rating, comment) {
   return await review.save();
 }
 
-// Update review
+
 async function updateReview(userId, reviewId, updateData) {
   const review = await Review.findOneAndUpdate(
     { _id: reviewId, userId },

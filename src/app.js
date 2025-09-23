@@ -12,7 +12,7 @@ const fuelTypeRoutes = require("./routes/fuelType.routes");
 const complaintRoutes = require('./routes/complaint.routes');
 const searchRoutes = require("./routes/search.routes");
 const bookingRoutes = require("./routes/booking.routes");
-const reviewRoutes = require("./routes/rate.and.review.routes");
+const reviewRoutes = require("./routes/review.routes");
 
 const app = express();
 

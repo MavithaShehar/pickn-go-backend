@@ -1,7 +1,6 @@
 // searchController.js
 const Vehicle = require("../models/vehicle.model");
 
-
 // Search vehicles by location (now searches city OR district)
 exports.searchByLocation = async (req, res) => {
   try {

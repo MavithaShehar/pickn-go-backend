@@ -1,3 +1,4 @@
+// routes/user.routes.js
 const express = require("express");
 const {
   registerUser,
@@ -11,36 +12,35 @@ const {
   adminSuspendUser,
   getUnverifiedUsers,
   getAllUsers,
-  adminVerifyVehicle,
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 
+// ✅ use your single validator file
+const {
+  validateUser,
+  validateResetPassword,
+  handleValidation,   // <— add this
+} = require("../middlewares/validateUser");
+
 const router = express.Router();
 
 // Public
-router.post("/register", registerUser);
+router.post("/register", validateUser, handleValidation, registerUser);
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+router.post("/reset-password", validateResetPassword, handleValidation, resetPassword);
 
 // Protected
 router.get("/profile", authMiddleware, getProfile);
 router.delete("/profile", authMiddleware, deleteProfile);
 
-
-
 // Admin
-// Admin: Get all users
 router.get("/alluser", authMiddleware, roleMiddleware("admin"), getAllUsers);
 router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
 router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyUser);
-
-
-
 router.patch("/:id/suspend", authMiddleware, roleMiddleware("admin"), adminSuspendUser);
 router.get("/unverified", authMiddleware, roleMiddleware("admin"), getUnverifiedUsers);
-
 
 module.exports = router;

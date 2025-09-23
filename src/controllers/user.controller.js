@@ -69,7 +69,9 @@ const registerUser = async (req, res, next) => {
     delete safeUser.resetOTP;
     delete safeUser.resetOTPExpires;
 
-    res.status(201).json({ message: "User registered successfully", user: safeUser });
+    res
+      .status(201)
+      .json({ message: "User registered successfully", user: safeUser });
   } catch (err) {
     next(err);
   }
@@ -89,7 +91,8 @@ const loginUser = async (req, res, next) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+    if (!isMatch)
+      return res.status(401).json({ message: "Invalid credentials" });
 
     res.json({
       id: user._id,
@@ -105,7 +108,9 @@ const loginUser = async (req, res, next) => {
 // Get all users (hide sensitive fields)
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select("-password -resetOTP -resetOTPExpires");
+    const users = await User.find().select(
+      "-password -resetOTP -resetOTPExpires"
+    );
     res.json(users);
   } catch (err) {
     next(err);
@@ -115,7 +120,9 @@ const getAllUsers = async (req, res, next) => {
 // Get Profile (hide sensitive fields)
 const getProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select("-password -resetOTP -resetOTPExpires");
+    const user = await User.findById(req.user._id).select(
+      "-password -resetOTP -resetOTPExpires"
+    );
     res.json(user);
   } catch (err) {
     next(err);
@@ -149,23 +156,32 @@ const forgotPassword = async (req, res, next) => {
     const user = await User.findOne({ email: emailNorm });
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     user.resetOTP = otp;
-    user.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 min
+    user.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    await sendEmail(
-      user.email,
-      "Password Reset OTP",
-      `Your OTP is ${otp}`,
-      `<p>Your OTP is <b>${otp}</b></p>`
-    );
+    // Send email
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset OTP",
+      text: `Your OTP is ${otp}`,
+      html: `<p>Your OTP is <b>${otp}</b>. It will expire in 10 minutes.</p>`
+    });
 
-    res.json({ message: "OTP sent to email" });
+    // Response (show OTP only in dev)
+    const response = { message: "OTP sent to email" };
+    if (process.env.NODE_ENV !== "production") {
+      response.devOtp = otp; // show in Postman during development
+    }
+
+    res.json(response);
   } catch (err) {
     next(err);
   }
 };
+
 
 // Reset Password
 const resetPassword = async (req, res, next) => {
@@ -179,7 +195,8 @@ const resetPassword = async (req, res, next) => {
       resetOTPExpires: { $gt: Date.now() },
     });
 
-    if (!user) return res.status(400).json({ message: "Invalid or expired OTP" });
+    if (!user)
+      return res.status(400).json({ message: "Invalid or expired OTP" });
 
     user.password = await bcrypt.hash(newPassword, 10);
     user.resetOTP = undefined;

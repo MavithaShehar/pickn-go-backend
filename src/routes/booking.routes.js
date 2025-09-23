@@ -9,7 +9,6 @@ const {
   getBookingStatus,
   getOwnerBookingById,
   getConfirmedBookings,
-  uploadLicense, // <-- updated controller
 } = require("../controllers/booking.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -37,14 +36,6 @@ router.put("/:id", authMiddleware, roleMiddleware("customer"), updateBooking);
 // Delete a booking (customer)
 router.delete("/:id", authMiddleware, roleMiddleware("customer"), deleteBooking);
 
-// Upload License for booking
-router.post(
-  "/:bookingId/upload-documents",
-  authMiddleware,
-  roleMiddleware("customer"),
-  upload,         // multer single file middleware
-  uploadLicense   // controller handles single file
-);
 
 // =====================
 // Owner Routes

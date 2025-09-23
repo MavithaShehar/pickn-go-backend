@@ -117,6 +117,12 @@ async function updateBooking(bookingId, customerId, updates) {
   const booking = await Booking.findOne({ _id: bookingId, customerId });
   if (!booking) throw new Error("Booking not found");
 
+  // ✅ normalize date to UTC midnight
+  const toDateOnly = (dateInput) => {
+    const d = new Date(dateInput);
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  };
+
   if (updates.bookingStartDate) {
     const start = toDateOnly(updates.bookingStartDate);
     const today = toDateOnly(new Date());
@@ -135,6 +141,7 @@ async function updateBooking(bookingId, customerId, updates) {
   const pricePerDay = (typeof vehicle.pricePerDay !== "undefined") ? vehicle.pricePerDay : vehicle.price;
   if (pricePerDay == null || isNaN(pricePerDay)) throw new Error("Vehicle price per day is not defined");
 
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
   const dayCount = Math.round((booking.bookingEndDate - booking.bookingStartDate) / MS_PER_DAY);
   if (dayCount < 1) throw new Error("Booking must be at least 1 day");
 

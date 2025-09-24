@@ -21,17 +21,19 @@ class ReportController {
             });
         } catch (error) {
             console.error(error);
-            res.status(500).json({success: false, message: "Failed to fetch Users report"});
+            res.status(500).json({
+                success: false,
+                message: "Failed to fetch Users report"
+            });
         }
     }
-
 
     static async downloadUserReportPDF(req, res) {
         try {
             const report = await ReportService.generateUserReport();
             const users = report.users.filter(u => u.role === "customer");
 
-            const doc = new PDFDocument({margin: 40, size: "A4"});
+            const doc = new PDFDocument({ margin: 40, size: "A4" });
 
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
@@ -41,101 +43,113 @@ class ReportController {
 
             doc.pipe(res);
 
-            // --- Logo ---
-            const logoPath = path.join(process.cwd(), "logo", "logo.jpg");
+            // --- HEADER (Logo + Title + Date) ---
+            const logoPath = path.join(__dirname, "..", "images", "pickngo_logo.jpg");
+            const headerY = 30;
+
             if (fs.existsSync(logoPath)) {
-                doc.image(logoPath, 40, 20, {width: 80});
+                doc.image(logoPath, 40, headerY, { width: 80 });
+            } else {
+                console.warn("Logo not found at:", logoPath);
             }
 
-            // --- Title ---
-            doc.font("Helvetica-Bold").fontSize(20).text("PicknGo Customers Details", {
-                align: "center",
-            });
-            doc.moveDown(0.5);
+            // Title centered horizontally
+            doc.font("Helvetica-Bold")
+                .fontSize(18)
+                .text("PicknGo Customers Details", 0, headerY + 20, { align: "center" });
 
-            // --- Date ---
+            // Date below the title
             const generatedDate = moment().format("YYYY-MM-DD HH:mm:ss");
-            doc.font("Helvetica").fontSize(12).text(`Report Generated: ${generatedDate}`, {
-                align: "center",
-            });
-            doc.moveDown(1);
+            doc.font("Helvetica")
+                .fontSize(10)
+                .text(`Report Generated: ${generatedDate}`, 0, headerY + 45, { align: "center" });
 
-            // --- Summary ---
-            doc.font("Helvetica").fontSize(12).text(`Total Customers: ${users.length}`);
-            doc.moveDown(1);
+            // Move cursor below header
+            doc.moveDown(5);
 
-            // --- Table Headers ---
+            // --- TABLE HEADERS ---
             const tableTop = doc.y;
-            const colWidths = [30, 100, 100, 150, 100, 60]; // adjust as needed
-            const headers = ["No", "First Name", "Last Name", "Email", "Phone", "Status"];
+            const colWidths = [20, 100, 160, 100, 80, 50];
+            const headers = ["No", "Name", "Email", "Address", "Phone", "Status"];
 
             let x = 40;
-            doc.rect(x, tableTop, colWidths.reduce((a, b) => Number(a) + Number(b) || 50, 0), 20)
+            doc.rect(x, tableTop, colWidths.reduce((a, b) => a + b, 0), 20)
                 .fill("#0074D9")
                 .fillColor("white")
                 .font("Helvetica-Bold")
                 .fontSize(10);
 
             headers.forEach((header, i) => {
-                doc.text(header, x + 3, tableTop + 6, {width: Number(colWidths[i]) - 6 || 50});
-                x += Number(colWidths[i]) || 50;
+                doc.text(header, x + 3, tableTop + 6, { width: colWidths[i] - 6 });
+                x += colWidths[i];
             });
             doc.fillColor("black");
 
-            // --- Table Rows ---
+            // --- TABLE ROWS ---
             let y = tableTop + 20;
             users.forEach((u, i) => {
                 x = 40;
-                const rowHeight = 20;
+                const rowHeight = 50;
 
                 if (i % 2 === 0) {
                     doc.rect(
                         40,
                         y,
-                        colWidths.reduce((a, b) => Number(a) + Number(b) || 50, 0),
+                        colWidths.reduce((a, b) => a + b, 0),
                         rowHeight
                     ).fill("#f2f2f2").fillColor("black");
                 }
 
+                const address = [
+                    u.addressLine1 || "",
+                    u.addressLine2 || "",
+                    u.postalCode || ""
+                ].filter(Boolean).join(",\n"); // join with comma + line break
+
                 const row = [
                     i + 1,
-                    u.firstName || "N/A",
-                    u.lastName || "N/A",
+                    u.firstName + " " + u.lastName,
                     u.email || "N/A",
+                    address || "N/A",
                     u.phoneNumber || "N/A",
                     u.status || "N/A",
                 ];
 
                 row.forEach((cell, j) => {
-                    try {
-                        const width = Number(colWidths[j]) || 50;
-                        const text = cell !== undefined && cell !== null ? cell.toString() : "-";
-                        doc.font("Helvetica").fontSize(9).fillColor("black");
-                        doc.text(text, Number(x) + 3, Number(y) + 6, {width});
-                    } catch (err) {
-                        console.warn(`Skipped cell at row ${i}, col ${j}:`, err);
-                        doc.text("-", Number(x) + 3, Number(y) + 6, {width: Number(colWidths[j]) || 50});
-                    }
-                    x += Number(colWidths[j]) || 50;
+                    const width = colWidths[j];
+                    const text = cell ? cell.toString() : "-";
+                    doc.font("Helvetica").fontSize(9).fillColor("black");
+                    doc.text(text, x + 3, y + 6, { width, continued: false });
+                    x += width;
                 });
+
 
                 y += rowHeight;
 
-                // Add new page if needed
-                if (y > doc.page.height - 50) {
+                if (y > doc.page.height - 80) { // leave space for summary
                     doc.addPage();
                     y = 40;
                 }
             });
 
+            // --- SUMMARY BELOW TABLE ---
+            doc.moveTo(40, y + 15);
+            doc.font("Helvetica-Bold")
+                .fontSize(12)
+                .text(`Total Customers: ${users.length}`, 40, y + 20);
+
             doc.end();
         } catch (error) {
             console.error("PDF Generation Error:", error);
             if (!res.headersSent) {
-                res.status(500).json({success: false, message: "Failed to download User PDF report"});
+                res.status(500).json({
+                    success: false,
+                    message: "Failed to download User PDF report"
+                });
             }
         }
     }
+
 
     static async downloadUserReportExcel(req, res) {
         try {
@@ -235,105 +249,96 @@ class ReportController {
 
             doc.pipe(res);
 
-            // --- Logo ---
-            const logoPath = path.join(process.cwd(), "logo", "logo.jpg");
+            // --- HEADER (Logo + Title + Date) ---
+            const logoPath = path.join(__dirname, "..", "images", "pickngo_logo.jpg");
+            const headerY = 20;
+
             if (fs.existsSync(logoPath)) {
-                doc.image(logoPath, 40, 20, { width: 80 });
+                doc.image(logoPath, 40, headerY, { width: 80 });
+            } else {
+                console.warn("Logo not found at:", logoPath);
             }
 
-            // --- Title ---
-            doc.font("Helvetica-Bold").fontSize(20).text("PicknGo Vehicle Owners Report", {
-                align: "center",
-            });
-            doc.moveDown(0.5);
+            // Title centered horizontally
+            doc.font("Helvetica-Bold")
+                .fontSize(18)
+                .text("PicknGo Vehicle Owners Details", 0, headerY + 20, { align: "center" });
 
-            // --- Date ---
+            // Date below the title
             const generatedDate = moment().format("YYYY-MM-DD HH:mm:ss");
-            doc.font("Helvetica").fontSize(12).text(`Report Generated: ${generatedDate}`, {
-                align: "center",
-            });
-            doc.moveDown(1.5);
+            doc.font("Helvetica")
+                .fontSize(10)
+                .text(`Report Generated: ${generatedDate}`, 0, headerY + 45, { align: "center" });
 
-            // --- Table Headers ---
+            doc.moveDown(5);
+
+            // --- TABLE HEADERS ---
             const tableTop = doc.y;
-            const colWidths = [30, 90, 60, 50, 50, 50, 100, 150]; // adjust as needed
-            const headers = [
-                "No",
-                "Vehicle",
-                "Status",
-                "Price/Km",
-                "Price/Day",
-                "City",
-                "Owner",
-                "Owner Contact",
-            ];
+            const colWidths = [30, 100, 90, 120, 100, 50]; // Adjust to fit A4 width
+            const headers = ["No", "Vehicle", "Owner", "Owner Contact", "Address", "Status"];
+
 
             let x = 40;
-            doc.rect(x, tableTop, colWidths.reduce((a, b) => Number(a) + Number(b) || 50, 0), 20)
-                .fill("#0074D9")
+            const headerHeight = 25;
+
+
+            doc.rect(x, tableTop, colWidths.reduce((a, b) => a + b, 0), headerHeight)
+                .fill("#0074D9")   // blue background
                 .fillColor("white")
                 .font("Helvetica-Bold")
                 .fontSize(10);
 
+            let headerX = 40;
             headers.forEach((header, i) => {
-                doc.text(header, x + 3, tableTop + 6, { width: Number(colWidths[i]) - 6 || 50 });
-                x += Number(colWidths[i]) || 50;
+                doc.text(header, headerX + 3, tableTop + 6, { width: colWidths[i] - 6 });
+                headerX += colWidths[i];
             });
-            doc.fillColor("black");
 
-            // --- Table Rows ---
+            doc.fillColor("black"); // reset text color for table rows
+
             let y = tableTop + 20;
+            const fixedRowHeight = 50; // Set your desired row height
+
             report.forEach((v, i) => {
                 x = 40;
-                const rowHeight = 20;
-
-                if (i % 2 === 0) {
-                    doc.rect(
-                        40,
-                        y,
-                        colWidths.reduce((a, b) => Number(a) + Number(b) || 50, 0),
-                        rowHeight
-                    ).fill("#f2f2f2").fillColor("black");
-                }
-
-                const ownerName = v.ownerId
-                    ? `${v.ownerId.firstName} ${v.ownerId.lastName}`
-                    : "N/A";
-                const ownerContact = v.ownerId
-                    ? `${v.ownerId.email} | ${v.ownerId.phoneNumber}`
-                    : "N/A";
 
                 const row = [
                     i + 1,
-                    v.title || "N/A",
-                    v.status || "N/A",
-                    isFinite(v.pricePerKm) ? v.pricePerKm : "-",
-                    isFinite(v.pricePerDay) ? v.pricePerDay : "-",
-                    v.city || "N/A",
-                    ownerName,
-                    ownerContact,
+                    v.vehicleName,
+                    v.ownerName,
+                    `${v.ownerEmail} | ${v.ownerPhone}`,
+                    v.ownerAddress,
+                    v.status,
                 ];
 
+                // Zebra background
+                if (i % 2 === 0) {
+                    doc.rect(40, y, colWidths.reduce((a, b) => a + b, 0), fixedRowHeight)
+                        .fill("#f2f2f2")
+                        .fillColor("black");
+                }
+
                 row.forEach((cell, j) => {
-                    try {
-                        const width = Number(colWidths[j]) || 50;
-                        const text = cell !== undefined && cell !== null ? cell.toString() : "-";
-                        doc.font("Helvetica").fontSize(9).fillColor("black");
-                        doc.text(text, Number(x) + 3, Number(y) + 6, { width });
-                    } catch (err) {
-                        doc.text("-", Number(x) + 3, Number(y) + 6, { width: Number(colWidths[j]) || 50 });
-                    }
-                    x += Number(colWidths[j]) || 50;
+                    const width = colWidths[j];
+                    doc.font("Helvetica").fontSize(9).fillColor("black");
+                    doc.text(cell, x + 3, y + 6, { width, continued: false });
+                    x += width;
                 });
 
-                y += rowHeight;
+                y += fixedRowHeight;
 
-                // Add new page if needed
                 if (y > doc.page.height - 50) {
                     doc.addPage();
                     y = 40;
                 }
             });
+
+
+            // --- SUMMARY BELOW TABLE ---
+            doc.moveTo(40, y + 15);
+            doc.font("Helvetica-Bold")
+                .fontSize(12)
+                .text(`Total Vehicles: ${report.length}`, 40, y + 20);
 
             doc.end();
         } catch (error) {
@@ -344,6 +349,7 @@ class ReportController {
         }
     }
 
+
     // Download Excel
     static async downloadVehicleOwnersReportExcel(req, res) {
         try {
@@ -352,42 +358,39 @@ class ReportController {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet("PicknGo Vehicle Owners");
 
+            // Define columns
             worksheet.columns = [
-                { header: "Vehicle ID", key: "_id", width: 24 },
-                { header: "Title", key: "title", width: 20 },
+                { header: "No", key: "no", width: 6 },
+                { header: "Vehicle Name", key: "vehicleName", width: 30 },
+                { header: "Owner Name", key: "ownerName", width: 25 },
+                { header: "Owner Email", key: "ownerEmail", width: 30 },
+                { header: "Owner Phone", key: "ownerPhone", width: 18 },
+                { header: "Owner Address", key: "ownerAddress", width: 40 },
                 { header: "Status", key: "status", width: 12 },
-                { header: "Price/Km", key: "pricePerKm", width: 12 },
-                { header: "Price/Day", key: "pricePerDay", width: 12 },
-                { header: "Year", key: "year", width: 8 },
-                { header: "Seats", key: "seats", width: 8 },
-                { header: "Location", key: "location", width: 15 },
-                { header: "Vehicle Type", key: "vehicleType", width: 15 },
-                { header: "Fuel Type", key: "fuelType", width: 15 },
-                { header: "Owner Name", key: "ownerName", width: 20 },
-                { header: "Owner Email", key: "ownerEmail", width: 25 },
-                { header: "Owner Phone", key: "ownerPhone", width: 15 },
-                { header: "Owner Role", key: "ownerRole", width: 12 },
-                { header: "Owner Status", key: "ownerStatus", width: 12 },
             ];
 
-            report.forEach(v => {
+            // Add rows
+            report.forEach((v, i) => {
                 worksheet.addRow({
-                    _id: v._id.toString(),
-                    title: v.title,
+                    no: i + 1,
+                    vehicleName: v.vehicleName,
+                    ownerName: v.ownerName,
+                    ownerEmail: v.ownerEmail,
+                    ownerPhone: v.ownerPhone,
+                    ownerAddress: v.ownerAddress,
                     status: v.status,
-                    pricePerKm: v.pricePerKm,
-                    pricePerDay: v.pricePerDay,
-                    year: v.year || "",
-                    seats: v.seats || "",
-                    location: v.location,
-                    vehicleType: v.vehicleTypeId?.name || "N/A",
-                    fuelType: v.fuelTypeId?.name || "N/A",
-                    ownerName: v.ownerId ? `${v.ownerId.firstName} ${v.ownerId.lastName}` : "N/A",
-                    ownerEmail: v.ownerId?.email || "N/A",
-                    ownerPhone: v.ownerId?.phoneNumber || "N/A",
-                    ownerRole: v.ownerId?.role || "N/A",
-                    ownerStatus: v.ownerId?.status || "N/A",
                 });
+            });
+
+            // Set header style
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+            worksheet.getRow(1).height = 20;
+
+            // Optional: set all rows to have wrap text
+            worksheet.eachRow({ includeEmpty: false }, function(row, rowNumber) {
+                row.alignment = { wrapText: true, vertical: "middle", horizontal: "left" };
+                row.height = 25; // increase row height
             });
 
             res.setHeader(
@@ -406,6 +409,7 @@ class ReportController {
             res.status(500).json({ success: false, message: "Failed to download Excel report" });
         }
     }
+
 
 
 
@@ -441,115 +445,130 @@ class ReportController {
             const report = await ReportService.generateVehicleReport();
             const vehicles = report.vehicles;
 
-            const doc = new PDFDocument({margin: 40, size: "A4"});
+            const doc = new PDFDocument({ margin: 40, size: "A4" });
 
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
                 "Content-Disposition",
-                "attachment; filename=PicknGo_Vehicles_Details.pdf"
+                "attachment; filename=PicknGo_Vehicles_Report.pdf"
             );
 
             doc.pipe(res);
 
-            // --- Logo ---
-            const logoPath = path.join(process.cwd(), "logo", "logo.jpg");
+            // --- HEADER (Logo + Title + Date) ---
+            const logoPath = path.join(__dirname, "..", "images", "pickngo_logo.jpg");
+            const headerY = 20;
+
             if (fs.existsSync(logoPath)) {
-                doc.image(logoPath, 40, 20, {width: 80});
+                doc.image(logoPath, 40, headerY, { width: 80 });
             }
 
-            // --- Title ---
-            doc.font("Helvetica-Bold").fontSize(20).text("PicknGo Vehicles Report", {
-                align: "center",
-            });
-            doc.moveDown(0.5);
+            doc.font("Helvetica-Bold")
+                .fontSize(18)
+                .text("PicknGo Vehicles Report", 0, headerY + 20, { align: "center" });
 
-            // --- Date ---
             const generatedDate = moment().format("YYYY-MM-DD HH:mm:ss");
-            doc.font("Helvetica").fontSize(12).text(`Report Generated: ${generatedDate}`, {
-                align: "center",
-            });
-            doc.moveDown(1.5);
+            doc.font("Helvetica")
+                .fontSize(10)
+                .text(`Report Generated: ${generatedDate}`, 0, headerY + 45, { align: "center" });
 
-            // --- Table Headers ---
+            doc.moveDown(5);
+
+            // --- TABLE HEADERS ---
             const tableTop = doc.y;
-            const colWidths = [30, 90, 100, 70, 70, 60, 60, 60]; // Adjust as needed
+            const colWidths = [20, 100, 40, 30, 40, 40, 60, 70, 100]; // Adjust widths
             const headers = [
                 "No",
                 "Title",
-                "Owner",
                 "Type",
                 "Fuel",
-                "Status",
                 "Price/Km",
                 "Price/Day",
+                "Status",
+                "Owner",
+                "Owner Contact"
             ];
 
-            // Draw header
+            const headerHeight = 35; // Header height
             let x = 40;
-            doc.rect(x, tableTop, colWidths.reduce((a, b) => Number(a) + Number(b) || 50, 0), 20)
+
+            doc.rect(x, tableTop, colWidths.reduce((a, b) => a + b, 0), headerHeight)
                 .fill("#0074D9")
                 .fillColor("white")
                 .font("Helvetica-Bold")
                 .fontSize(10);
 
             headers.forEach((header, i) => {
-                doc.text(header, x + 3, tableTop + 6, {width: Number(colWidths[i]) - 6 || 50});
-                x += Number(colWidths[i]) || 50;
+                doc.text(header, x + 3, tableTop + (headerHeight / 2) - 5, { width: colWidths[i] - 6 });
+                x += colWidths[i];
             });
+
             doc.fillColor("black");
 
-            // --- Table Rows ---
-            let y = tableTop + 20;
+            // --- TABLE ROWS ---
+            let y = tableTop + headerHeight;
             vehicles.forEach((v, i) => {
                 x = 40;
-                const rowHeight = 20;
 
-                if (i % 2 === 0) {
-                    doc.rect(
-                        40,
-                        y,
-                        colWidths.reduce((a, b) => Number(a) + Number(b) || 50, 0),
-                        rowHeight
-                    ).fill("#f2f2f2").fillColor("black");
-                }
+                const ownerContact = `${v.ownerPhone || ""} | ${v.ownerEmail || ""}`;
+                const vehicleTitle = v.title || "N/A";
+                const ownerName = v.ownerName || "N/A";
+
+                // Set a higher minimum row height
+                const minRowHeight = 40; // <-- increase this to make rows taller
+
+                // Calculate rowHeight based on content
+                const rowHeight = Math.max(
+                    minRowHeight,
+                    doc.heightOfString(vehicleTitle, { width: colWidths[1] - 6, ellipsis: true, lineGap: 2 }) + 10,
+                    doc.heightOfString(ownerName, { width: colWidths[7] - 6, ellipsis: true, lineGap: 2 }) + 10
+                );
 
                 const row = [
                     i + 1,
-                    v.title || "N/A",
-                    v.ownerName || "N/A",
+                    vehicleTitle,
                     v.vehicleType || "N/A",
                     v.fuelType || "N/A",
-                    v.status || "N/A",
                     isFinite(v.pricePerKm) ? v.pricePerKm : "-",
                     isFinite(v.pricePerDay) ? v.pricePerDay : "-",
+                    v.status || "N/A",
+                    ownerName,
+                    ownerContact || "N/A"
                 ];
 
+                // Zebra background
+                if (i % 2 === 0) {
+                    doc.rect(40, y, colWidths.reduce((a, b) => a + b, 0), rowHeight)
+                        .fill("#f2f2f2")
+                        .fillColor("black");
+                }
+
+                // Draw each cell
                 row.forEach((cell, j) => {
-                    try {
-                        const width = Number(colWidths[j]) || 50;
-                        const text = cell !== undefined && cell !== null ? cell.toString() : "-";
-                        doc.font("Helvetica").fontSize(9).fillColor("black");
-                        doc.text(text, Number(x) + 3, Number(y) + 6, {width});
-                    } catch (err) {
-                        console.warn(`Skipped cell at row ${i}, col ${j}:`, err);
-                        doc.text("-", Number(x) + 3, Number(y) + 6, {width: Number(colWidths[j]) || 50});
-                    }
-                    x += Number(colWidths[j]) || 50;
+                    doc.font("Helvetica").fontSize(9).fillColor("black");
+                    doc.text(cell, x + 3, y + 6, {
+                        width: colWidths[j] - 6,
+                        ellipsis: true,
+                        lineGap: 2,
+                        height: rowHeight - 10
+                    });
+                    x += colWidths[j];
                 });
 
                 y += rowHeight;
 
-                // Add new page if needed
                 if (y > doc.page.height - 50) {
                     doc.addPage();
                     y = 40;
                 }
             });
 
-            // --- Totals Section ---
-            doc.moveDown(2);
-            doc.font("Helvetica-Bold").fontSize(12).text("=== Totals ===", {underline: true});
-            doc.font("Helvetica").fontSize(12).text(`Total Vehicles: ${report.totalVehicles}`);
+
+            // --- SUMMARY BELOW TABLE ---
+            doc.moveTo(40, y + 15);
+            doc.font("Helvetica-Bold")
+                .fontSize(12)
+                .text(`Total Vehicles: ${report.totalVehicles}`, 40, y + 20);
             doc.text(`Available Vehicles: ${report.availableVehicles}`);
             doc.text(`Unavailable Vehicles: ${report.unavailableVehicles}`);
 
@@ -557,10 +576,12 @@ class ReportController {
         } catch (error) {
             console.error("PDF Generation Error:", error);
             if (!res.headersSent) {
-                res.status(500).json({success: false, message: "Failed to download PDF report"});
+                res.status(500).json({ success: false, message: "Failed to download PDF report" });
             }
         }
     }
+
+
 
     // Download Excel report
     static async downloadVehicleReportExcel(req, res) {
@@ -573,34 +594,43 @@ class ReportController {
 
             // Add header row
             worksheet.columns = [
-                {header: "ID", key: "_id", width: 24},
-                {header: "Title", key: "title", width: 20},
-                {header: "Owner", key: "ownerName", width: 20},
-                {header: "Vehicle Type", key: "vehicleType", width: 15},
-                {header: "Fuel Type", key: "fuelType", width: 12},
-                {header: "Status", key: "status", width: 12},
-                {header: "Price/Km", key: "pricePerKm", width: 12},
-                {header: "Price/Day", key: "pricePerDay", width: 12},
-                {header: "Year", key: "year", width: 8},
-                {header: "Seats", key: "seats", width: 8},
-                {header: "Location", key: "location", width: 15},
+                { header: "No", key: "no", width: 6 },
+                { header: "Title", key: "title", width: 30 },
+                { header: "Owner Name", key: "ownerName", width: 25 },
+                { header: "Owner Contact", key: "ownerContact", width: 25 },
+                { header: "Owner Address", key: "ownerAddress", width: 35 },
+                { header: "Vehicle Type", key: "vehicleType", width: 20 },
+                { header: "Fuel Type", key: "fuelType", width: 15 },
+                { header: "Status", key: "status", width: 12 },
+                { header: "Price/Km", key: "pricePerKm", width: 12 },
+                { header: "Price/Day", key: "pricePerDay", width: 12 },
             ];
 
             // Add rows
-            vehicles.forEach(v => {
+            vehicles.forEach((v, i) => {
                 worksheet.addRow({
-                    _id: v._id.toString(),
+                    no: i + 1,
                     title: v.title,
-                    ownerName: v.ownerName || "N/A",
-                    vehicleType: v.vehicleType || "N/A",
-                    fuelType: v.fuelType || "N/A",
+                    ownerName: v.ownerName,
+                    ownerContact: `${v.ownerEmail} | ${v.ownerPhone}`,
+                    ownerAddress: v.ownerAddress,
+                    vehicleType: v.vehicleType,
+                    fuelType: v.fuelType,
                     status: v.status,
                     pricePerKm: v.pricePerKm,
                     pricePerDay: v.pricePerDay,
-                    year: v.year || "",
-                    seats: v.seats || "",
-                    location: v.location,
                 });
+            });
+
+            // Style header row
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+            worksheet.getRow(1).height = 25;
+
+            // Wrap text and increase row height
+            worksheet.eachRow({ includeEmpty: false }, function (row, rowNumber) {
+                row.alignment = { wrapText: true, vertical: "middle", horizontal: "left" };
+                row.height = 30;
             });
 
             // Set headers for Excel download
@@ -617,10 +647,9 @@ class ReportController {
             res.end();
         } catch (error) {
             console.error(error);
-            res.status(500).json({success: false, message: "Failed to download Excel report"});
+            res.status(500).json({ success: false, message: "Failed to download Excel report" });
         }
     }
-
 
 }
 

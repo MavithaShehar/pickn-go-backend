@@ -9,10 +9,12 @@ const {
   getBookingStatus,
   getOwnerBookingById,
   getConfirmedBookings,
+  
 } = require("../controllers/booking.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+const upload = require("../middlewares/upload"); // multer middleware
 
 const router = express.Router();
 
@@ -35,6 +37,7 @@ router.put("/:id", authMiddleware, roleMiddleware("customer"), updateBooking);
 // Delete a booking (customer)
 router.delete("/:id", authMiddleware, roleMiddleware("customer"), deleteBooking);
 
+
 // =====================
 // Owner Routes
 // =====================
@@ -47,6 +50,9 @@ router.get("/owner/:id", authMiddleware, roleMiddleware("owner"), getOwnerBookin
 
 // Owner manages a booking (confirm/cancel)
 router.put("/owner/:id", authMiddleware, roleMiddleware("owner"), manageBookingByOwner);
+
+
+
 
 // =====================
 // Admin Routes

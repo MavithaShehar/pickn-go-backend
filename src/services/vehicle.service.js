@@ -103,6 +103,27 @@ async function adminVerifyVehicle(vehicleId) {
   return vehicle;
 }
 
+// Owner: update vehicle status (available/unavailable)
+async function updateVehicleStatus(ownerId, vehicleId, status) {
+  const owner = await User.findById(ownerId);
+  if (!owner || owner.role !== "owner" || !owner.verificationStatus) {
+    throw new Error("Only verified owners can update vehicle status");
+  }
+
+  if (!["available", "unavailable"].includes(status)) {
+    throw new Error("Invalid status value. Must be 'available' or 'unavailable'");
+  }
+
+  const vehicle = await Vehicle.findOneAndUpdate(
+    { _id: vehicleId, ownerId },
+    { status },
+    { new: true }
+  );
+
+  if (!vehicle) throw new Error("Vehicle not found");
+
+  return vehicle;
+}
 
 
 // Get all available vehicles of a specific owner
@@ -112,6 +133,19 @@ async function getAvailableVehiclesByOwner(vehicleId) {
 
   return await Vehicle.find({ ownerId: vehicle.ownerId, status: "available" });
 }
+
+// Admin: update verification status (true/false)
+async function adminUpdateVerificationStatus(vehicleId, status) {
+  const vehicle = await Vehicle.findById(vehicleId).populate("ownerId");
+  if (!vehicle) {
+    throw new Error("Vehicle not found");
+  }
+
+  vehicle.verificationStatus = status;
+  await vehicle.save();
+    return vehicle;
+}
+
 
 module.exports = {
   createVehicle,
@@ -124,5 +158,6 @@ module.exports = {
   getAllUnavailableVehicles,
   getAvailableVehiclesByOwner,
   getAllUnvarifiedVehicles,
-  adminVerifyVehicle, 
+  updateVehicleStatus, 
+  adminUpdateVerificationStatus, 
 };

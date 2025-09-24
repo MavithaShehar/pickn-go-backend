@@ -174,6 +174,9 @@ async function manageBookingByOwner(bookingId, ownerId, action) {
   } else if (action === "cancel") {
     booking.bookingStatus = "cancelled";
     vehicle.status = "available";
+    } else if (action === "complete") {
+    booking.bookingStatus = "completed";
+    vehicle.status = "available";
     await vehicle.save();
   } else {
     throw new Error("Invalid action");

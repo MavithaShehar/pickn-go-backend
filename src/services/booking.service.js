@@ -275,6 +275,107 @@ async function getOwnerBookingById(ownerId, bookingId) {
   };
 }
 
+// Owner: Rental History (past bookings)
+async function getOwnerRentalHistory(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const today = new Date();
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    bookingEndDate: { $lt: today } // past bookings
+  })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
+    .populate({ path: "customerId", select: "_id firstName lastName" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
+    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+  }));
+}
+
+// Owner: Ongoing bookings (status confirmed & current date within booking range)
+async function getOwnerOngoingBookings(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const today = new Date();
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    bookingStatus: "confirmed",
+    bookingStartDate: { $lte: today },
+    bookingEndDate: { $gte: today },
+  })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
+    .populate({ path: "customerId", select: "_id firstName lastName" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
+    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+  }));
+}
+
+// Owner: Upcoming bookings (status confirmed & start date in future)
+async function getOwnerUpcomingBookings(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const today = new Date();
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    bookingStatus: "confirmed",
+    bookingStartDate: { $gt: today }, // future bookings
+  })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
+    .populate({ path: "customerId", select: "_id firstName lastName" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
+    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+  }));
+}
+
+// Owner: Completed bookings (status completed)
+async function getOwnerCompletedBookings(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    bookingStatus: "completed",
+  })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
+    .populate({ path: "customerId", select: "_id firstName lastName" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
+    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+  }));
+}
+
 module.exports = {
   createBooking,
   updateBooking,
@@ -285,4 +386,8 @@ module.exports = {
   getBookingStatus,
   getConfirmedBookings,
   getOwnerBookingById,
+  getOwnerRentalHistory,
+  getOwnerOngoingBookings,
+  getOwnerUpcomingBookings,
+  getOwnerCompletedBookings,
 };

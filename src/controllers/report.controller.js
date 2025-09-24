@@ -14,19 +14,25 @@ class ReportController {
     static async getUserReport(req, res) {
         try {
             const report = await ReportService.generateUserReport();
+
             res.json({
                 success: true,
                 message: "Users report fetched successfully",
-                data: report,
+                data: {
+                    totalUsers: report.totalUsers,
+                    totalCustomers: report.totalCustomers,
+                    users: report.users,
+                },
             });
         } catch (error) {
-            console.error(error);
+            console.error("Error fetching user report:", error);
             res.status(500).json({
                 success: false,
-                message: "Failed to fetch Users report"
+                message: "Failed to fetch Users report",
             });
         }
     }
+
 
     static async downloadUserReportPDF(req, res) {
         try {
@@ -207,24 +213,13 @@ class ReportController {
             const report = await ReportService.getVehicleOwnersReport();
 
             const formatted = report.map(v => ({
-                vehicleId: v._id,
-                title: v.title,
-                description: v.description,
-                year: v.year,
-                seats: v.seats,
-                location: v.location,
+                vehicleName: v.vehicleName,
                 status: v.status,
-                pricePerKm: v.pricePerKm,
-                pricePerDay: v.pricePerDay,
-                vehicleType: v.vehicleTypeId?.name || "N/A",
-                fuelType: v.fuelTypeId?.name || "N/A",
                 owner: {
-                    ownerId: v.ownerId?._id,
-                    name: `${v.ownerId?.firstName} ${v.ownerId?.lastName}`,
-                    email: v.ownerId?.email,
-                    phone: v.ownerId?.phoneNumber,
-                    role: v.ownerId?.role,
-                    status: v.ownerId?.status,
+                    name: v.ownerName,
+                    email: v.ownerEmail,
+                    phone: v.ownerPhone,
+                    address: v.ownerAddress,
                 },
             }));
 

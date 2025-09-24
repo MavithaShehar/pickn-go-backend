@@ -30,8 +30,6 @@ class ReportService {
     }
 
 
-
-
     // Generate Vehicle Owners Report
     static async getVehicleOwnersReport() {
         const vehicles = await Vehicle.find()

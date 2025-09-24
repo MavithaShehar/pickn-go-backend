@@ -20,7 +20,7 @@ This is an automated email. Please do not reply.
 © ${new Date().getFullYear()} Pick-N-Go. All rights reserved.
 `;
 
-// HTML template with modern styling and logo at the bottom
+// HTML template with modern styling and images at the bottom
 exports.bookingConfirmation = (user, booking) => `
 <!DOCTYPE html>
 <html lang="en">

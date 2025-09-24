@@ -11,6 +11,8 @@ const {
   getAvailableVehiclesByOwner,
   getAllUnvarifiedVehicles,
   adminVerifyVehicle,
+  updateVehicleStatus,
+  adminUpdateVerificationStatus
 } = require("../controllers/vehicle.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -32,6 +34,20 @@ router.get("/admin/unavailable",authMiddleware,roleMiddleware("admin"),getAllUna
 // Admin: view ALL unvarified vehicles
 
 router.get("/admin/unvarified",authMiddleware,roleMiddleware("admin"),getAllUnvarifiedVehicles);
+// Admin: update verification status true/false
+router.put(
+  "/:id/verification",
+  authMiddleware,
+  roleMiddleware("admin"),
+  adminUpdateVerificationStatus
+);
+
+// Owner: update vehicle status (available/unavailable)
+
+
+
+
+router.put("/:id/status", authMiddleware, roleMiddleware("owner"), updateVehicleStatus);
 
 
 // Customer: view all available vehicles of the owner of a selected vehicle

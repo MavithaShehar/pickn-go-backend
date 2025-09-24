@@ -12,6 +12,8 @@ const fuelTypeRoutes = require("./routes/fuelType.routes");
 const complaintRoutes = require('./routes/complaint.routes');
 const searchRoutes = require("./routes/search.routes");
 const bookingRoutes = require("./routes/booking.routes");
+const reviewRoutes = require("./routes/review.routes");
+const licenseRoutes = require("./routes/license.routes");
 const reportRoutes = require("./routes/report.routes");
 
 const app = express();
@@ -33,6 +35,8 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use('/uploads', express.static('uploads'));
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/licenses", licenseRoutes);
 app.use("/api/reports", reportRoutes);
 
 // Not Found Handler

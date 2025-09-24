@@ -146,3 +146,43 @@ exports.getAvailableVehiclesByOwner = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Owner: change vehicle status
+exports.updateVehicleStatus = async (req, res) => {
+  try {
+    if (!ensureVerifiedOwner(req, res)) return;
+
+    const { status } = req.body; // expecting { "status": "available" }
+    const updated = await vehicleService.updateVehicleStatus(req.user.id, req.params.id, status);
+
+    res.json({ message: "Vehicle status updated successfully", vehicle: updated });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+// Admin: update verification status (true/false)
+exports.adminUpdateVerificationStatus = async (req, res) => {
+  try {
+    const { status } = req.body; // expects { "status": true/false }
+
+    if (typeof status !== "boolean") {
+      return res.status(400).json({ message: "Status must be true or false" });
+    }
+
+    const vehicle = await vehicleService.adminUpdateVerificationStatus(
+      req.params.id,
+      status
+    );
+
+    res.status(200).json({
+      message: `Vehicle verification status updated to ${status}`,
+      vehicle,
+    });
+  } catch (error) {
+    if (error.message === "Vehicle not found") {
+      return res.status(404).json({ message: error.message });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+

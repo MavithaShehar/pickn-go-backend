@@ -25,7 +25,6 @@ exports.searchByLocation = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 // Search vehicles by price range
 exports.searchByPrice = async (req, res) => {
   try {

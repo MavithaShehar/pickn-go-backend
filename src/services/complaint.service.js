@@ -47,6 +47,19 @@ class ComplaintService {
     }
   }
 
+   // ✅ GET COMPLAINT BY ID — NOW INSIDE CLASS
+  static async getComplaintById(id) {
+    try {
+      const complaint = await Complaint.findById(id).populate('user', 'firstname email');
+      if (!complaint) {
+        throw new Error('Complaint not found');
+      }
+      return complaint;
+    } catch (error) {
+      throw new Error(`Error fetching complaint: ${error.message}`);
+    }
+  }
+
   // Get complaints by status
   static async getComplaintsByStatus(status) {
     try {
@@ -115,6 +128,21 @@ class ComplaintService {
       throw new Error(`Error updating complaint status: ${error.message}`);
     }
   }
+   // Delete complaint by ID
+  static async deleteComplaint(id) {
+    try {
+      const complaint = await Complaint.findByIdAndDelete(id);
+
+      if (!complaint) {
+        return null; // Not found
+      }
+
+      return complaint;
+    } catch (error) {
+      throw new Error(`Failed to delete complaint: ${error.message}`);
+    }
+  }
+
 }
 
 module.exports = ComplaintService;

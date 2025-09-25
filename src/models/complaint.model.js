@@ -1,7 +1,7 @@
 // models/complaint.model.js
 const mongoose = require('mongoose');
 const { nanoid } = require('nanoid'); // npm install nanoid
-const { COMPLAINT_STATUS } = require('../config/complaint');
+
 
 const complaintSchema = new mongoose.Schema({
   complaintID: {
@@ -29,10 +29,10 @@ const complaintSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: Object.values(COMPLAINT_STATUS),
+      values: ['pending', 'processing', 'rejected', 'resolved'],
       message: 'Status must be: pending, processing, rejected, or resolved'
     },
-    default: COMPLAINT_STATUS.PENDING
+    default: 'pending'
   },
   images: {
     type: [String],

@@ -1,5 +1,4 @@
 const Complaint = require('../models/complaint.model');
-const { COMPLAINT_STATUS } = require('../config/complaint');
 const fs = require('fs').promises; // Use promise-based fs
 const path = require('path');
 
@@ -38,7 +37,7 @@ class ComplaintService {
   static async getAllComplaints() {
     try {
       return await Complaint.find()
-        .populate('user', 'firstname email') // Assuming User has 'firstname'
+        .populate('user', 'firstname email') 
         .sort({ dateCreated: -1 });
     } catch (error) {
       throw new Error(`Error fetching complaints: ${error.message}`);
@@ -82,7 +81,7 @@ class ComplaintService {
         throw new Error('You can only edit your own complaints');
       }
 
-      if (complaint.status !== COMPLAINT_STATUS.PENDING) {
+      if (complaint.status !== 'pending') {
         throw new Error('Only pending complaints can be edited');
       }
 

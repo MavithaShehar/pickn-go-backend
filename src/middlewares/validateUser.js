@@ -26,6 +26,21 @@ exports.validateResetPassword = [
     .withMessage("Passwords do not match"),
 ];
 
+// --- Edit profile validation ---
+exports.validateEditProfile = [
+  body("firstName").optional().trim().notEmpty().withMessage("First name cannot be empty"),
+  body("lastName").optional().trim().notEmpty().withMessage("Last name cannot be empty"),
+  body("email").optional().trim().isEmail().withMessage("Valid email required"),
+  body("phoneNumber")
+    .optional()
+    .trim()
+    .isLength({ min: 10, max: 15 })
+    .withMessage("Phone number must be 10–15 digits"),
+  body("addressLine1").optional().trim().notEmpty().withMessage("Address Line 1 cannot be empty"),
+  body("addressLine2").optional().trim(),
+  body("postalCode").optional().trim(),
+];
+
 // --- Common validator runner (replaces separate 'validate' middleware) ---
 exports.handleValidation = (req, res, next) => {
   const result = validationResult(req);

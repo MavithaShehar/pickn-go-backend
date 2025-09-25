@@ -12,6 +12,7 @@ const {
   adminSuspendUser,
   getUnverifiedUsers,
   getAllUsers,
+  updateAvatar, // <— add this
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -24,6 +25,15 @@ const {
   handleValidation,   // <— add this
 } = require("../middlewares/validateUser");
 
+// Multer for avatar upload
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image/")) cb(null, true);
+  else cb(new Error("Only image files are allowed!"), false);
+};
+const uploadAvatar = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } }).single("avatar");
+
 const router = express.Router();
 
 // Public
@@ -35,6 +45,9 @@ router.post("/reset-password", validateResetPassword, handleValidation, resetPas
 // Protected
 router.get("/profile", authMiddleware, getProfile);
 router.delete("/profile", authMiddleware, deleteProfile);
+
+// Update avatar
+router.put("/profile/avatar", authMiddleware, uploadAvatar, updateAvatar); // <— new route
 
 // Admin
 router.get("/alluser", authMiddleware, roleMiddleware("admin"), getAllUsers);

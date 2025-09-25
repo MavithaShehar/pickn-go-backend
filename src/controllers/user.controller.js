@@ -129,6 +129,61 @@ const getProfile = async (req, res, next) => {
   }
 };
 
+// Edit Own Profile
+const editProfile = async (req, res, next) => {
+  try {
+    const { firstName, lastName, email, phoneNumber, addressLine1, addressLine2, postalCode } = req.body;
+    const userId = req.user._id;
+
+    // Get current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if email is being changed and if it's already in use
+    if (email && email.trim().toLowerCase() !== currentUser.email) {
+      const emailNorm = email.trim().toLowerCase();
+      const existingEmailUser = await User.findOne({ email: emailNorm });
+      if (existingEmailUser) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
+    }
+
+    // Check if phone number is being changed and if it's already in use
+    if (phoneNumber && phoneNumber !== currentUser.phoneNumber) {
+      const existingPhoneUser = await User.findOne({ phoneNumber });
+      if (existingPhoneUser) {
+        return res.status(400).json({ message: "Phone number already in use" });
+      }
+    }
+
+    // Prepare update object with only provided fields
+    const updateFields = {};
+    if (firstName !== undefined) updateFields.firstName = firstName.trim();
+    if (lastName !== undefined) updateFields.lastName = lastName.trim();
+    if (email !== undefined) updateFields.email = email.trim().toLowerCase();
+    if (phoneNumber !== undefined) updateFields.phoneNumber = phoneNumber.trim();
+    if (addressLine1 !== undefined) updateFields.addressLine1 = addressLine1.trim();
+    if (addressLine2 !== undefined) updateFields.addressLine2 = addressLine2.trim();
+    if (postalCode !== undefined) updateFields.postalCode = postalCode.trim();
+
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateFields,
+      { new: true, runValidators: true }
+    ).select("-password -resetOTP -resetOTPExpires");
+
+    res.json({ 
+      message: "Profile updated successfully", 
+      user: updatedUser 
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Delete Own Profile
 const deleteProfile = async (req, res, next) => {
   try {
@@ -264,6 +319,7 @@ module.exports = {
   registerUser,
   loginUser,
   getProfile,
+  editProfile,
   deleteProfile,
   adminDeleteUser,
   forgotPassword,

@@ -1,15 +1,37 @@
 const express = require("express");
 const router = express.Router();
 const uploadLicense = require("../middlewares/uploadLicenseMemory");
-const authMiddleware = require("../middlewares/authMiddleware"); // import auth
-const { uploadLicenseToMongo } = require("../controllers/license.controller");
+const authMiddleware = require("../middlewares/authMiddleware");
+const roleMiddleware = require("../middlewares/roleMiddleware"); // for owner/admin role
+const {
+  uploadLicenseToMongo,
+  viewLicenseByOwner,
+  verifyLicenseByOwner,
+} = require("../controllers/license.controller");
 
-// Upload license endpoint with authentication
+// Customer uploads license
 router.post(
   "/:bookingId/upload-license",
-  authMiddleware,   // ✅ ensures req.user is defined
-  uploadLicense,    // multer middleware
+  authMiddleware,
+  roleMiddleware("customer"),
+  uploadLicense,
   uploadLicenseToMongo
+);
+
+// Owner views license
+router.get(
+  "/:bookingId/view-license",
+  authMiddleware,
+  roleMiddleware("owner"),
+  viewLicenseByOwner
+);
+
+// Owner verifies license
+router.patch(
+  "/:bookingId/verify-license",
+  authMiddleware,
+  roleMiddleware("owner"),
+  verifyLicenseByOwner
 );
 
 module.exports = router;

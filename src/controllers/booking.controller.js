@@ -119,6 +119,46 @@ exports.getOwnerBookingById = async (req, res) => {
   }
 };
 
+// Rental History (past bookings)
+exports.getOwnerRentalHistory = async (req, res) => {
+  try {
+    const bookings = await bookingService.getOwnerRentalHistory(req.user.id);
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Ongoing bookings
+exports.getOwnerOngoingBookings = async (req, res) => {
+  try {
+    const bookings = await bookingService.getOwnerOngoingBookings(req.user.id);
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Upcoming bookings
+exports.getOwnerUpcomingBookings = async (req, res) => {
+  try {
+    const bookings = await bookingService.getOwnerUpcomingBookings(req.user.id);
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Completed bookings
+exports.getOwnerCompletedBookings = async (req, res) => {
+  try {
+    const bookings = await bookingService.getOwnerCompletedBookings(req.user.id);
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // ================================
 // Admin Controllers
 // ================================

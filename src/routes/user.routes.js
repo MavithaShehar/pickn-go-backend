@@ -4,6 +4,7 @@ const {
   registerUser,
   loginUser,
   getProfile,
+  editProfile,
   deleteProfile,
   adminDeleteUser,
   forgotPassword,
@@ -22,6 +23,7 @@ const roleMiddleware = require("../middlewares/roleMiddleware");
 const {
   validateUser,
   validateResetPassword,
+  validateEditProfile,
   handleValidation,   // <— add this
 } = require("../middlewares/validateUser");
 
@@ -44,6 +46,7 @@ router.post("/reset-password", validateResetPassword, handleValidation, resetPas
 
 // Protected
 router.get("/profile", authMiddleware, getProfile);
+router.put("/profile", authMiddleware, validateEditProfile, handleValidation, editProfile);
 router.delete("/profile", authMiddleware, deleteProfile);
 
 // Update avatar

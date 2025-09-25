@@ -1,6 +1,7 @@
 const ComplaintService = require('../services/complaint.service');
-const { COMPLAINT_STATUS } = require('../config/complaint');
 const Complaint = require('../models/complaint.model');
+
+const VALID_STATUSES = ['pending', 'processing', 'rejected', 'resolved'];
 
 class ComplaintController {
 
@@ -86,7 +87,7 @@ class ComplaintController {
   static async getComplaintsByStatus(req, res) {
     try {
       const { status } = req.params;
-      if (!Object.values(COMPLAINT_STATUS).includes(status)) {
+      if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
 
@@ -103,7 +104,7 @@ class ComplaintController {
       const { id } = req.params;
       const { status } = req.body;
 
-      if (!Object.values(COMPLAINT_STATUS).includes(status)) {
+      if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
 

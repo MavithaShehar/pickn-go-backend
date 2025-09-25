@@ -327,7 +327,7 @@ async function getOwnerOngoingBookings(ownerId) {
   }));
 }
 
-// Owner: Upcoming bookings (status confirmed & start date in future)
+// Owner: Upcoming bookings (all statuses, start date in future)
 async function getOwnerUpcomingBookings(ownerId) {
   const vehicles = await Vehicle.find({ ownerId });
   const vehicleIds = vehicles.map(v => v._id);
@@ -336,22 +336,29 @@ async function getOwnerUpcomingBookings(ownerId) {
 
   const bookings = await Booking.find({
     vehicleId: { $in: vehicleIds },
-    bookingStatus: "confirmed",
-    bookingStartDate: { $gt: today }, // future bookings
+    bookingStartDate: { $gt: today }, // only future bookings
   })
     .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
     .populate({ path: "customerId", select: "_id firstName lastName" });
 
   return bookings.map(b => ({
     _id: b._id,
-    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
-    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    vehicleId: { 
+      _id: b.vehicleId._id, 
+      title: b.vehicleId.title, 
+      year: b.vehicleId.year 
+    },
+    customerId: { 
+      _id: b.customerId._id, 
+      name: `${b.customerId.firstName} ${b.customerId.lastName}` 
+    },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
     bookingStatus: b.bookingStatus,
   }));
 }
+
 
 // Owner: Completed bookings (status completed)
 async function getOwnerCompletedBookings(ownerId) {

@@ -17,7 +17,7 @@ router.post('/',roleMiddleware("customer"),
 );
 
 // Get complaints by status (specific)
-router.get('/status/:status', roleMiddleware("admin,"),ComplaintController.getComplaintsByStatus);
+router.get('/status/:status', roleMiddleware("admin"),ComplaintController.getComplaintsByStatus);
 
 // Get complaint by ID (specific)
 router.get('/:id', roleMiddleware( "admin"), ComplaintController.getComplaintById);

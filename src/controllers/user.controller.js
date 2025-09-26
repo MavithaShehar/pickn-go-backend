@@ -4,7 +4,7 @@ const User = require("../models/user.model");
 const generateToken = require("../utils/generateToken");
 const sendEmail = require("../utils/sendEmail");
 
-// Register
+// ---------------- Register ----------------
 const registerUser = async (req, res, next) => {
   try {
     const {
@@ -13,17 +13,15 @@ const registerUser = async (req, res, next) => {
       email,
       phoneNumber,
       password,
-      role, // no fallback here — model default handles it
+      role,
       addressLine1,
       addressLine2,
       postalCode,
-      // legacy support:
-      address, // if old clients still send single-line "address"
+      address,
     } = req.body;
 
     const emailNorm = (email || "").trim().toLowerCase();
 
-    // Uniqueness checks
     const existingUser = await User.findOne({ email: emailNorm });
     if (existingUser) {
       if (existingUser.status === "suspended") {
@@ -33,13 +31,12 @@ const registerUser = async (req, res, next) => {
       }
       return res.status(400).json({ message: "Email already in use" });
     }
-    // Optional but recommended since phoneNumber is unique in schema
+
     const existingPhone = await User.findOne({ phoneNumber });
     if (existingPhone) {
       return res.status(400).json({ message: "Phone number already in use" });
     }
 
-    // Require addressLine1 (fallback to legacy "address" if provided)
     const line1 = (addressLine1 ?? address ?? "").trim();
     if (!line1) {
       return res.status(400).json({ message: "addressLine1 is required" });
@@ -53,31 +50,29 @@ const registerUser = async (req, res, next) => {
       email: emailNorm,
       phoneNumber,
       password: hashedPassword,
-      role, // schema default => "customer" if missing
+      role,
       addressLine1: line1,
       addressLine2: (addressLine2 ?? "").trim(),
       postalCode: (postalCode ?? "").trim(),
       verificationStatus: false,
       status: "active",
+      profilePhoto: null, // store uploaded photo later
     });
 
     await newUser.save();
 
-    // return without sensitive fields
     const safeUser = newUser.toObject();
     delete safeUser.password;
     delete safeUser.resetOTP;
     delete safeUser.resetOTPExpires;
 
-    res
-      .status(201)
-      .json({ message: "User registered successfully", user: safeUser });
+    res.status(201).json({ message: "User registered successfully", user: safeUser });
   } catch (err) {
     next(err);
   }
 };
 
-// Login
+// ---------------- Login ----------------
 const loginUser = async (req, res, next) => {
   try {
     const emailNorm = (req.body.email || "").trim().toLowerCase();
@@ -97,7 +92,8 @@ const loginUser = async (req, res, next) => {
     res.json({
       id: user._id,
       email: user.email,
-      role: user.role, // should be set (model default covers missing)
+      role: user.role,
+      profilePhoto: user.profilePhoto || null,
       token: generateToken(user._id, user.role || "customer"),
     });
   } catch (err) {
@@ -105,25 +101,43 @@ const loginUser = async (req, res, next) => {
   }
 };
 
-// Get all users (hide sensitive fields)
+// ---------------- Update Avatar / Profile Photo ----------------
+const updateAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No image uploaded" });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    user.profilePhoto = base64Image;
+
+    await user.save();
+
+    res.json({ message: "Profile photo updated successfully", profilePhoto: user.profilePhoto });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ---------------- Get All Users ----------------
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select(
-      "-password -resetOTP -resetOTPExpires"
-    );
+    const users = await User.find().select("-password -resetOTP -resetOTPExpires");
     res.json(users);
   } catch (err) {
     next(err);
   }
 };
 
-// Get Profile (hide sensitive fields)
+// ---------------- Get Profile ----------------
 const getProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select(
-      "-password -resetOTP -resetOTPExpires"
-    );
-    res.json(user);
+    const user = await User.findById(req.user._id).select("-password -resetOTP -resetOTPExpires");
+    res.json({
+      ...user.toObject(),
+      profilePhoto: user.profilePhoto || null,
+    });
   } catch (err) {
     next(err);
   }
@@ -184,7 +198,7 @@ const editProfile = async (req, res, next) => {
   }
 };
 
-// Delete Own Profile
+// ---------------- Delete Own Profile ----------------
 const deleteProfile = async (req, res, next) => {
   try {
     await User.findByIdAndDelete(req.user._id);
@@ -194,7 +208,7 @@ const deleteProfile = async (req, res, next) => {
   }
 };
 
-// Admin Delete Any User
+// ---------------- Admin Delete User ----------------
 const adminDeleteUser = async (req, res, next) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -204,20 +218,18 @@ const adminDeleteUser = async (req, res, next) => {
   }
 };
 
-// Forgot Password - Generate OTP
+// ---------------- Forgot Password ----------------
 const forgotPassword = async (req, res, next) => {
   try {
     const emailNorm = (req.body.email || "").trim().toLowerCase();
     const user = await User.findOne({ email: emailNorm });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     user.resetOTP = otp;
-    user.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.resetOTPExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    // Send email
     await sendEmail({
       to: user.email,
       subject: "Password Reset OTP",
@@ -225,10 +237,9 @@ const forgotPassword = async (req, res, next) => {
       html: `<p>Your OTP is <b>${otp}</b>. It will expire in 10 minutes.</p>`
     });
 
-    // Response (show OTP only in dev)
     const response = { message: "OTP sent to email" };
     if (process.env.NODE_ENV !== "production") {
-      response.devOtp = otp; // show in Postman during development
+      response.devOtp = otp;
     }
 
     res.json(response);
@@ -237,8 +248,7 @@ const forgotPassword = async (req, res, next) => {
   }
 };
 
-
-// Reset Password
+// ---------------- Reset Password ----------------
 const resetPassword = async (req, res, next) => {
   try {
     const emailNorm = (req.body.email || "").trim().toLowerCase();
@@ -264,7 +274,7 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-// Admin Verify User
+// ---------------- Admin Verify User ----------------
 const adminVerifyUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -288,7 +298,7 @@ const adminVerifyUser = async (req, res, next) => {
   }
 };
 
-// Admin Suspend User
+// ---------------- Admin Suspend User ----------------
 const adminSuspendUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -303,7 +313,7 @@ const adminSuspendUser = async (req, res, next) => {
   }
 };
 
-// Get all unverified users (hide sensitive fields)
+// ---------------- Get Unverified Users ----------------
 const getUnverifiedUsers = async (req, res, next) => {
   try {
     const users = await User.find({ verificationStatus: false }).select(
@@ -328,4 +338,5 @@ module.exports = {
   adminSuspendUser,
   getUnverifiedUsers,
   getAllUsers,
+  updateAvatar,
 };

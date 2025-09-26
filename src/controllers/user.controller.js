@@ -283,14 +283,14 @@ const adminVerifyUser = async (req, res, next) => {
     user.verificationStatus = true;
     await user.save();
 
-    await sendEmail(
-      user.email,
-      "Account Verified",
-      "Your account has been verified successfully.",
-      `<p>Hello,</p>
-       <p>Your account has been <b>verified</b> successfully. You can now log in and use all features.</p>
-       <p>Thank you,<br/>PicknGo Team</p>`
-    );
+   await sendEmail({
+  to: user.email,
+  subject: "Account Verified",
+  text: "Your account has been verified successfully.",
+  html: `<p>Hello,</p>
+         <p>Your account has been <b>verified</b> successfully. You can now log in and use all features.</p>
+         <p>Thank you,<br/>PicknGo Team</p>`
+});
 
     res.json({ message: "User verified successfully and email sent" });
   } catch (err) {

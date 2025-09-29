@@ -1,8 +1,7 @@
 const Complaint = require('../models/complaint.model');
-const { COMPLAINT_STATUS } = require('../config/complaint');
 const fs = require('fs').promises; // Use promise-based fs
 const path = require('path');
-const generateComplaintId = require('../utils/generateComplaintId');
+
 
 class ComplaintService {
 
@@ -24,12 +23,10 @@ class ComplaintService {
 
   // Create new complaint
   static async createComplaint(complaintData) {
+    
     try {
-      const complaintID = await generateComplaintId();
-      const complaint = new Complaint({
-        ...complaintData,
-        complaintID // Correctly assign inside object
-      });
+      // ✅ Let the model generate complaintID automatically
+      const complaint = new Complaint(complaintData);
       return await complaint.save();
     } catch (error) {
       throw new Error(`Error creating complaint: ${error.message}`);
@@ -40,10 +37,23 @@ class ComplaintService {
   static async getAllComplaints() {
     try {
       return await Complaint.find()
-        .populate('user', 'firstname email') // Assuming User has 'firstname'
+        .populate('user', 'firstname email') 
         .sort({ dateCreated: -1 });
     } catch (error) {
       throw new Error(`Error fetching complaints: ${error.message}`);
+    }
+  }
+
+   // ✅ GET COMPLAINT BY ID — NOW INSIDE CLASS
+  static async getComplaintById(id) {
+    try {
+      const complaint = await Complaint.findById(id).populate('user', 'firstname email');
+      if (!complaint) {
+        throw new Error('Complaint not found');
+      }
+      return complaint;
+    } catch (error) {
+      throw new Error(`Error fetching complaint: ${error.message}`);
     }
   }
 
@@ -71,7 +81,7 @@ class ComplaintService {
         throw new Error('You can only edit your own complaints');
       }
 
-      if (complaint.status !== COMPLAINT_STATUS.PENDING) {
+      if (complaint.status !== 'pending') {
         throw new Error('Only pending complaints can be edited');
       }
 
@@ -115,6 +125,21 @@ class ComplaintService {
       throw new Error(`Error updating complaint status: ${error.message}`);
     }
   }
+   // Delete complaint by ID
+  static async deleteComplaint(id) {
+    try {
+      const complaint = await Complaint.findByIdAndDelete(id);
+
+      if (!complaint) {
+        return null; // Not found
+      }
+
+      return complaint;
+    } catch (error) {
+      throw new Error(`Failed to delete complaint: ${error.message}`);
+    }
+  }
+
 }
 
 module.exports = ComplaintService;

@@ -76,19 +76,19 @@ async function createBooking(vehicleId, customerId, bookingStartDate, bookingEnd
   const pricePerDay = (typeof vehicle.pricePerDay !== "undefined") ? vehicle.pricePerDay : vehicle.price;
   if (pricePerDay == null || isNaN(pricePerDay)) throw new Error("Vehicle price per day is not defined");
 
-  const today = toDateOnly(new Date());
-  const start = toDateOnly(bookingStartDate);
-  const end = toDateOnly(bookingEndDate);
+   // normalize dates to UTC midnight (avoid timezone shifts when converting to ISO)
+  const toDateOnlyUTC = (dateInput) => {
+    const d = new Date(dateInput);
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  };
 
+  const today = toDateOnlyUTC(new Date());
+  const start = toDateOnlyUTC(bookingStartDate);
+  const end = toDateOnlyUTC(bookingEndDate);
   if (start < today) throw new Error("Start date cannot be in the past");
   if (end <= start) throw new Error("End date must be after start date");
 
-  const existingBooking = await Booking.findOne({
-    vehicleId,
-    customerId,
-    bookingStatus: { $in: ["pending", "confirmed"] },
-  });
-  if (existingBooking) throw new Error("You have already booked this vehicle");
+  
 
   const dayCount = Math.round((end - start) / MS_PER_DAY);
   if (dayCount < 1) throw new Error("Booking must be at least 1 day");
@@ -117,6 +117,12 @@ async function updateBooking(bookingId, customerId, updates) {
   const booking = await Booking.findOne({ _id: bookingId, customerId });
   if (!booking) throw new Error("Booking not found");
 
+  // ✅ normalize date to UTC midnight
+  const toDateOnly = (dateInput) => {
+    const d = new Date(dateInput);
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  };
+
   if (updates.bookingStartDate) {
     const start = toDateOnly(updates.bookingStartDate);
     const today = toDateOnly(new Date());
@@ -135,6 +141,7 @@ async function updateBooking(bookingId, customerId, updates) {
   const pricePerDay = (typeof vehicle.pricePerDay !== "undefined") ? vehicle.pricePerDay : vehicle.price;
   if (pricePerDay == null || isNaN(pricePerDay)) throw new Error("Vehicle price per day is not defined");
 
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
   const dayCount = Math.round((booking.bookingEndDate - booking.bookingStartDate) / MS_PER_DAY);
   if (dayCount < 1) throw new Error("Booking must be at least 1 day");
 
@@ -168,7 +175,12 @@ async function manageBookingByOwner(bookingId, ownerId, action) {
     booking.bookingStatus = "cancelled";
     vehicle.status = "available";
     await vehicle.save();
-  } else {
+  }
+  else if (action === "complete") {
+    booking.bookingStatus = "completed";
+    vehicle.status = "available";
+    await vehicle.save();
+  }  else {
     throw new Error("Invalid action");
   }
 
@@ -263,6 +275,114 @@ async function getOwnerBookingById(ownerId, bookingId) {
   };
 }
 
+// Owner: Rental History (past bookings)
+async function getOwnerRentalHistory(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const today = new Date();
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    bookingEndDate: { $lt: today } // past bookings
+  })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
+    .populate({ path: "customerId", select: "_id firstName lastName" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
+    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+  }));
+}
+
+// Owner: Ongoing bookings (status confirmed & current date within booking range)
+async function getOwnerOngoingBookings(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const today = new Date();
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    bookingStatus: "confirmed",
+    bookingStartDate: { $lte: today },
+    bookingEndDate: { $gte: today },
+  })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
+    .populate({ path: "customerId", select: "_id firstName lastName" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
+    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+  }));
+}
+
+// Owner: Upcoming bookings (all statuses, start date in future)
+async function getOwnerUpcomingBookings(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const today = new Date();
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    bookingStartDate: { $gt: today }, // only future bookings
+  })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
+    .populate({ path: "customerId", select: "_id firstName lastName" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    vehicleId: { 
+      _id: b.vehicleId._id, 
+      title: b.vehicleId.title, 
+      year: b.vehicleId.year 
+    },
+    customerId: { 
+      _id: b.customerId._id, 
+      name: `${b.customerId.firstName} ${b.customerId.lastName}` 
+    },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+  }));
+}
+
+
+// Owner: Completed bookings (status completed)
+async function getOwnerCompletedBookings(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    bookingStatus: "completed",
+  })
+    .populate({ path: "vehicleId", select: "_id title year pricePerDay" })
+    .populate({ path: "customerId", select: "_id firstName lastName" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
+    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+  }));
+}
+
 module.exports = {
   createBooking,
   updateBooking,
@@ -273,4 +393,8 @@ module.exports = {
   getBookingStatus,
   getConfirmedBookings,
   getOwnerBookingById,
+  getOwnerRentalHistory,
+  getOwnerOngoingBookings,
+  getOwnerUpcomingBookings,
+  getOwnerCompletedBookings,
 };

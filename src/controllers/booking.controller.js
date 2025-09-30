@@ -109,15 +109,16 @@ exports.manageBookingByOwner = async (req, res) => {
   }
 };
 
-// Get a specific booking by ID for owner
-exports.getOwnerBookingById = async (req, res) => {
+// controllers/booking.controller.js
+exports.getBookingById = async (req, res) => {
   try {
-    const booking = await bookingService.getOwnerBookingById(req.user.id, req.params.id);
+    const booking = await bookingService.getBookingById(req.user.id, req.params.id);
     res.json(booking);
   } catch (err) {
     res.status(404).json({ message: err.message });
   }
 };
+
 
 // Rental History (past bookings)
 exports.getOwnerRentalHistory = async (req, res) => {

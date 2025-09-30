@@ -7,7 +7,7 @@ const {
   getOwnerBookings,
   manageBookingByOwner,
   getBookingStatus,
-  getOwnerBookingById,
+ getBookingById,
   getConfirmedBookings,
   getOwnerRentalHistory,
   getOwnerOngoingBookings,
@@ -35,6 +35,10 @@ router.get("/customer", authMiddleware, roleMiddleware("customer"), getCustomerB
 // Get booking status by ID for customer
 router.get("/:id/status", authMiddleware, roleMiddleware("customer"), getBookingStatus);
 
+// For customers
+router.get("/customer/:id", authMiddleware, roleMiddleware("customer"), getBookingById);
+
+
 // Update a booking (customer)
 router.put("/:id", authMiddleware, roleMiddleware("customer"), updateBooking);
 
@@ -61,8 +65,8 @@ router.get("/owner/completed", authMiddleware, roleMiddleware("owner"), getOwner
 // Get all bookings for owner
 router.get("/owner", authMiddleware, roleMiddleware("owner"), getOwnerBookings);
 
-// Get a specific booking by ID for owner
-router.get("/owner/:id", authMiddleware, roleMiddleware("owner"), getOwnerBookingById);
+// For owners
+router.get("/owner/:id", authMiddleware, roleMiddleware("owner"), getBookingById);
 
 // Owner manages a booking (confirm/cancel)
 router.put("/owner/:id", authMiddleware, roleMiddleware("owner"), manageBookingByOwner);

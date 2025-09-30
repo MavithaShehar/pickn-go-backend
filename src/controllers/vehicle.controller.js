@@ -1,18 +1,19 @@
 const vehicleService = require("../services/vehicle.service");
-const User = require("../models/user.model"); 
+const User = require("../models/user.model");
 
 // Helper: ensure user is a verified owner
 const ensureVerifiedOwner = (req, res) => {
   if (req.user.role !== "owner" || !req.user.verificationStatus) {
-    return res.status(403).json({ message: "Only verified owners can perform this action" });
+    return res
+      .status(403)
+      .json({ message: "Only verified owners can perform this action" });
   }
   return true;
 };
 
-// Add new vehicle
+// Add new vehicle (Base64 images expected in req.body.images)
 exports.addVehicle = async (req, res) => {
   try {
-    // If user is customer, convert to owner
     if (req.user.role === "customer") {
       await User.findByIdAndUpdate(req.user.id, { role: "owner" });
       req.user.role = "owner";
@@ -20,7 +21,16 @@ exports.addVehicle = async (req, res) => {
 
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const vehicle = await vehicleService.createVehicle(req.user.id, req.body);
+    if (!req.body.images || req.body.images.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "At least one vehicle image is required (Base64)" });
+    }
+
+    const images = req.body.images; // already Base64 strings
+    const vehicleData = { ...req.body, images };
+
+    const vehicle = await vehicleService.createVehicle(req.user.id, vehicleData);
     res.status(201).json(vehicle);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -31,7 +41,6 @@ exports.addVehicle = async (req, res) => {
 exports.getVehicles = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
-
     const vehicles = await vehicleService.getOwnerVehicles(req.user.id);
     res.json(vehicles);
   } catch (error) {
@@ -44,7 +53,10 @@ exports.getVehicleById = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const vehicle = await vehicleService.getVehicleById(req.user.id, req.params.id);
+    const vehicle = await vehicleService.getVehicleById(
+      req.user.id,
+      req.params.id
+    );
     if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
     res.json(vehicle);
   } catch (error) {
@@ -52,14 +64,59 @@ exports.getVehicleById = async (req, res) => {
   }
 };
 
-// Update vehicle
+// Update vehicle info (no image update here)
 exports.updateVehicle = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const updated = await vehicleService.updateVehicle(req.user.id, req.params.id, req.body);
-    if (!updated) return res.status(404).json({ message: "Vehicle not found" });
-    res.json(updated);
+    const updateData = { ...req.body }; // fields like title, description, etc.
+
+    const result = await vehicleService.updateVehicle(
+      req.user.id,
+      req.params.id,
+      updateData
+    );
+
+    if (!result.success)
+      return res.status(404).json({ message: result.message });
+
+    res.json({
+      success: true,
+      message: result.message,
+      data: result.data,
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Update only vehicle images (Base64 version)
+exports.updateVehicleImagesOnly = async (req, res) => {
+  try {
+    if (!ensureVerifiedOwner(req, res)) return;
+
+    if (!req.body.images || req.body.images.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "At least one Base64 image is required" });
+    }
+
+    const newImages = req.body.images; // overwrite old images
+
+    const result = await vehicleService.updateVehicle(
+      req.user.id,
+      req.params.id,
+      { images: newImages }
+    );
+
+    if (!result.success)
+      return res.status(404).json({ message: result.message });
+
+    res.json({
+      success: true,
+      message: "Vehicle images updated successfully",
+      data: result.data,
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -70,15 +127,25 @@ exports.deleteVehicle = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const deleted = await vehicleService.deleteVehicle(req.user.id, req.params.id);
+    const vehicle = await vehicleService.getVehicleById(
+      req.user.id,
+      req.params.id
+    );
+    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+
+    const deleted = await vehicleService.deleteVehicle(
+      req.user.id,
+      req.params.id
+    );
     if (!deleted) return res.status(404).json({ message: "Vehicle not found" });
+
     res.json({ message: "Vehicle deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get available vehicles (for customers) — no restriction
+// Other unchanged functions (availability, admin verify, etc.)
 exports.getAvailableVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAvailableVehicles();
@@ -88,7 +155,6 @@ exports.getAvailableVehicles = async (req, res) => {
   }
 };
 
-// Admin: get all available vehicles
 exports.getAllAvailableVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAllAvailableVehicles();
@@ -97,8 +163,6 @@ exports.getAllAvailableVehicles = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// Admin : Verify Vehile
 
 exports.adminVerifyVehicle = async (req, res) => {
   try {
@@ -112,8 +176,6 @@ exports.adminVerifyVehicle = async (req, res) => {
   }
 };
 
-//Get unverified Vehicle 
-
 exports.getAllUnvarifiedVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAllUnvarifiedVehicles();
@@ -123,9 +185,6 @@ exports.getAllUnvarifiedVehicles = async (req, res) => {
   }
 };
 
-
-
-// Admin: get all unavailable vehicles
 exports.getAllUnavailableVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAllUnavailableVehicles();
@@ -135,10 +194,11 @@ exports.getAllUnavailableVehicles = async (req, res) => {
   }
 };
 
-// Get all available vehicles of a specific owner (for customers)
 exports.getAvailableVehiclesByOwner = async (req, res) => {
   try {
-    const vehicles = await vehicleService.getAvailableVehiclesByOwner(req.params.id);
+    const vehicles = await vehicleService.getAvailableVehiclesByOwner(
+      req.params.id
+    );
     if (!vehicles) return res.status(404).json({ message: "Vehicle not found" });
 
     res.json(vehicles);
@@ -147,24 +207,29 @@ exports.getAvailableVehiclesByOwner = async (req, res) => {
   }
 };
 
-// Owner: change vehicle status
 exports.updateVehicleStatus = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const { status } = req.body; // expecting { "status": "available" }
-    const updated = await vehicleService.updateVehicleStatus(req.user.id, req.params.id, status);
+    const { status } = req.body;
+    const updated = await vehicleService.updateVehicleStatus(
+      req.user.id,
+      req.params.id,
+      status
+    );
 
-    res.json({ message: "Vehicle status updated successfully", vehicle: updated });
+    res.json({
+      message: "Vehicle status updated successfully",
+      vehicle: updated,
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
-// Admin: update verification status (true/false)
+
 exports.adminUpdateVerificationStatus = async (req, res) => {
   try {
-    const { status } = req.body; // expects { "status": true/false }
-
+    const { status } = req.body;
     if (typeof status !== "boolean") {
       return res.status(400).json({ message: "Status must be true or false" });
     }
@@ -185,4 +250,3 @@ exports.adminUpdateVerificationStatus = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-

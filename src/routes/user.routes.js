@@ -14,6 +14,7 @@ const {
   getUnverifiedUsers,
   getAllUsers,
   updateAvatar, // <— add this
+  getAnyUserInfo
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -48,6 +49,9 @@ router.post("/reset-password", validateResetPassword, handleValidation, resetPas
 router.get("/profile", authMiddleware, getProfile);
 router.put("/profile", authMiddleware, validateEditProfile, handleValidation, editProfile);
 router.delete("/profile", authMiddleware, deleteProfile);
+
+// Customer can retrieve ANY user's basic info
+router.get("/customer/user/:id",authMiddleware,roleMiddleware("customer"),getAnyUserInfo);
 
 // Update avatar
 router.put("/profile/avatar", authMiddleware, uploadAvatar, updateAvatar); // <— new route

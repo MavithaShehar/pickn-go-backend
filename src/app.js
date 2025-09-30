@@ -15,6 +15,7 @@ const bookingRoutes = require("./routes/booking.routes");
 const reviewRoutes = require("./routes/review.routes");
 const licenseRoutes = require("./routes/license.routes");
 const reportRoutes = require("./routes/report.routes");
+const damageReportRoutes=require('./routes/damageReport.routes');
 
 const app = express();
 
@@ -38,6 +39,9 @@ app.use('/uploads', express.static('uploads'));
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/licenses", licenseRoutes);
 app.use("/api/reports", reportRoutes);
+
+
+app.use('/api/damage-reports', damageReportRoutes);
 
 // Not Found Handler
 app.use(notFoundMiddleware);

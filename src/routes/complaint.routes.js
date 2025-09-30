@@ -27,6 +27,7 @@ router.get('/:id', roleMiddleware( "customer"), ComplaintController.getComplaint
 // Update complaint status (PATCH)
 router.patch('/:id/status',roleMiddleware("admin"), ComplaintController.updateComplaintStatus);
 
+
 // Edit complaint with images (PUT)
 router.put('/:id',roleMiddleware("customer"),uploadMiddleware.upload.array('images', 5),uploadMiddleware.handleUploadErrors,ComplaintController.editComplaint
 );

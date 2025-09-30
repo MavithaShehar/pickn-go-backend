@@ -1,9 +1,6 @@
 const Vehicle = require("../models/vehicle.model");
 const User = require("../models/user.model");
 const sendEmail = require("../utils/sendEmail");
-const fs = require("fs");
-const path = require("path");
-
 
 // Ensures that only verified owners can perform restricted actions
 async function ensureVerifiedOwner(ownerId) {
@@ -26,7 +23,6 @@ async function createVehicle(ownerId, vehicleData) {
     return { success: false, message: error.message };
   }
 }
-
 
 // Get all vehicles of an owner
 async function getOwnerVehicles(ownerId) {
@@ -51,7 +47,6 @@ async function getVehicleById(ownerId, vehicleId) {
   }
 }
 
-
 // Update full vehicle details
 async function updateVehicle(ownerId, vehicleId, updateData) {
   try {
@@ -64,24 +59,15 @@ async function updateVehicle(ownerId, vehicleId, updateData) {
   }
 }
 
-// Update vehicle images only
-async function updateVehicleImagesOnly(ownerId, vehicleId, images) {
+// Update vehicle images only (Base64)
+async function updateVehicleImagesOnly(ownerId, vehicleId, imagesBase64) {
   try {
     await ensureVerifiedOwner(ownerId);
 
     const vehicle = await Vehicle.findOne({ _id: vehicleId, ownerId });
     if (!vehicle) return { success: false, message: "Vehicle not found" };
 
-    // Delete old images from server
-    if (vehicle.images && vehicle.images.length > 0) {
-      vehicle.images.forEach((imgPath) => {
-        const fullPath = path.join(__dirname, "..", imgPath);
-        if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
-      });
-    }
-
-    // Save new images
-    vehicle.images = images;
+    vehicle.images = imagesBase64; // overwrite with Base64 images
     await vehicle.save();
 
     return { success: true, message: "Vehicle images updated successfully", data: vehicle };
@@ -90,8 +76,7 @@ async function updateVehicleImagesOnly(ownerId, vehicleId, images) {
   }
 }
 
-
-// Delete vehicle and its images
+// Delete vehicle
 async function deleteVehicle(ownerId, vehicleId) {
   try {
     await ensureVerifiedOwner(ownerId);
@@ -99,20 +84,12 @@ async function deleteVehicle(ownerId, vehicleId) {
     const vehicle = await Vehicle.findOneAndDelete({ _id: vehicleId, ownerId });
     if (!vehicle) return { success: false, message: "Vehicle not found" };
 
-    // Delete images from server
-    if (vehicle.images && vehicle.images.length > 0) {
-      vehicle.images.forEach((imgPath) => {
-        const fullPath = path.join(__dirname, "..", imgPath);
-        if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
-      });
-    }
-
+    // No file deletion needed because images are Base64
     return { success: true, message: "Vehicle deleted successfully", data: vehicle };
   } catch (error) {
     return { success: false, message: error.message };
   }
 }
-
 
 // Get available vehicles (for customers)
 async function getAvailableVehicles() {
@@ -154,7 +131,6 @@ async function getAllUnvarifiedVehicles() {
   }
 }
 
-
 // Admin verifies a vehicle and notifies owner by email
 async function adminVerifyVehicle(vehicleId) {
   try {
@@ -182,7 +158,6 @@ async function adminVerifyVehicle(vehicleId) {
   }
 }
 
-
 // Update vehicle status (available/unavailable)
 async function updateVehicleStatus(ownerId, vehicleId, status) {
   try {
@@ -201,7 +176,6 @@ async function updateVehicleStatus(ownerId, vehicleId, status) {
   }
 }
 
-
 // Get all available vehicles of the same owner as a given vehicle
 async function getAvailableVehiclesByOwner(vehicleId) {
   try {
@@ -214,7 +188,6 @@ async function getAvailableVehiclesByOwner(vehicleId) {
     return { success: false, message: error.message };
   }
 }
-
 
 // Admin updates verification status (true/false)
 async function adminUpdateVerificationStatus(vehicleId, status) {
@@ -236,7 +209,7 @@ module.exports = {
   getOwnerVehicles,
   getVehicleById,
   updateVehicle,
-  updateVehicleImagesOnly, // ✅ new function for images only
+  updateVehicleImagesOnly,
   deleteVehicle,
   getAvailableVehicles,
   getAllAvailableVehicles,

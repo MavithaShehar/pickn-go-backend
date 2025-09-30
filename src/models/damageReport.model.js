@@ -16,6 +16,7 @@ const DAMAGE_TYPES = [
   'other'
 ];
 
+
 const damageReportSchema = new mongoose.Schema({
   reportID: {
     type: String,
@@ -23,6 +24,7 @@ const damageReportSchema = new mongoose.Schema({
     unique: true,
     default: () => `DR-${nanoid(8).toUpperCase()}`
   },
+
   bookingId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booking',

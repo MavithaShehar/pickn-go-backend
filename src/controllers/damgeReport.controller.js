@@ -21,7 +21,7 @@ class DamageReportController {
     }
   }
 
-  // Get all reports (admin/owner)
+  // Get all reports (admin)
   static async getAllReports(req, res) {
     try {
       const reports = await DamageReportService.getAllDamageReports();
@@ -30,6 +30,43 @@ class DamageReportController {
       res.status(500).json({ error: error.message });
     }
   }
+ // Add this method
+static async getOwnerDamageReports(req, res) {
+  try {
+    const ownerId = req.user._id; // owner is logged in
+    const reports = await DamageReportService.getDamageReportsByOwner(ownerId);
+    res.json(reports);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+  // Add this method to DamageReportController
+
+static async updateDamageReport(req, res) {
+  try {
+    const { id } = req.params;
+    const customerId = req.user._id;
+    const { description, damageType } = req.body;
+
+    const updateData = {};
+    if (description !== undefined) updateData.description = description;
+    if (damageType !== undefined) updateData.damageType = damageType;
+
+    // Optional: support removing images via query or body flag
+    // e.g., if (req.body.removeImages) updateData.removeImages = true;
+
+    const report = await DamageReportService.updateDamageReport(
+      id,
+      customerId,
+      updateData,
+      req.files
+    );
+
+    res.json(report);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+}
 
   // Get customer's own reports
   static async getMyReports(req, res) {

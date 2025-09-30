@@ -10,15 +10,31 @@ const DamageReportController = require('../controllers/damgeReport.controller');
 router.post(
   '/',
   authMiddleware,
-  upload.array('images', 5),
+  upload.array('images', 5),roleMiddleware('customer'),
   DamageReportController.createDamageReport
 );
 
-router.get('/my', authMiddleware, DamageReportController.getMyReports);
-router.delete('/:id', authMiddleware, DamageReportController.deleteReport);
+
+
+router.patch(
+  '/:id',
+  authMiddleware,
+  upload.array('images', 5),roleMiddleware('customer'),
+  DamageReportController.updateDamageReport
+);
+
+router.get('/my', authMiddleware,roleMiddleware( 'customer'), DamageReportController.getMyReports);
+router.delete('/:id', authMiddleware,roleMiddleware( 'customer'), DamageReportController.deleteReport);
 
 // Admin/Owner routes
-router.get('/', authMiddleware, roleMiddleware(['admin', 'owner']), DamageReportController.getAllReports);
-router.patch('/:id/status', authMiddleware, roleMiddleware(['admin', 'owner']), DamageReportController.updateReportStatus);
+router.get('/', authMiddleware, roleMiddleware('admin'), DamageReportController.getAllReports);
+router.patch('/:id/status', authMiddleware, roleMiddleware('admin'), DamageReportController.updateReportStatus);
+router.get(
+  '/owner',
+  authMiddleware,
+  roleMiddleware('owner'),
+  DamageReportController.getOwnerDamageReports // new method
+);
+
 
 module.exports = router;

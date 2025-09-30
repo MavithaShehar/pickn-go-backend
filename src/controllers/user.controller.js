@@ -325,6 +325,32 @@ const getUnverifiedUsers = async (req, res, next) => {
   }
 };
 
+// ---------------- Get Any User's Basic Info ----------------
+const getAnyUserInfo = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select("firstName lastName phoneNumber role");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 🚫 Block access if user is admin
+    if (user.role === "admin") {
+      return res.status(403).json({ message: "Access denied. Cannot retrieve admin info." });
+    }
+
+    // ✅ Return only customer/owner info
+    res.json({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
 module.exports = {
   registerUser,
   loginUser,
@@ -339,4 +365,6 @@ module.exports = {
   getUnverifiedUsers,
   getAllUsers,
   updateAvatar,
+  getAnyUserInfo,
+
 };

@@ -1,66 +1,46 @@
 const express = require("express");
-const {
-  addVehicle,
-  getVehicles,
-  getVehicleById,
-  updateVehicle,
-  deleteVehicle,
-  getAvailableVehicles,
-  getAllAvailableVehicles,   
-  getAllUnavailableVehicles,
-  getAvailableVehiclesByOwner,
-  getAllUnvarifiedVehicles,
-  adminVerifyVehicle,
-  updateVehicleStatus,
-  adminUpdateVerificationStatus
-} = require("../controllers/vehicle.controller");
-
+const vehicleController = require("../controllers/vehicle.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+const uploadMiddleware = require("../middlewares/uploadMiddleware"); // ✅ add this
 
 const router = express.Router();
 
-
-router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyVehicle);
-
-
-// Customer: view only available vehicles
-router.get("/available",authMiddleware,roleMiddleware("customer"),getAvailableVehicles);
-// Admin: view ALL available vehicles
-router.get("/admin/available",authMiddleware,roleMiddleware("admin"),getAllAvailableVehicles);
-
-// Admin: view ALL unavailable vehicles
-router.get("/admin/unavailable",authMiddleware,roleMiddleware("admin"),getAllUnavailableVehicles);
-// Admin: view ALL unvarified vehicles
-
-router.get("/admin/unvarified",authMiddleware,roleMiddleware("admin"),getAllUnvarifiedVehicles);
-// Admin: update verification status true/false
-router.put(
-  "/:id/verification",
+// Owner routes
+router.post(
+  "/",
   authMiddleware,
-  roleMiddleware("admin"),
-  adminUpdateVerificationStatus
+  roleMiddleware("owner"),
+  uploadMiddleware.uploadArray("images", 5), // ✅ handle multiple images
+  uploadMiddleware.handleUploadErrors,
+  vehicleController.addVehicle
 );
 
-// Owner: update vehicle status (available/unavailable)
+router.get("/", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicles);
+router.get("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicleById);
+router.put("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.updateVehicle);
 
+router.put(
+  "/:id/images",
+  authMiddleware,
+  roleMiddleware("owner"),
+  uploadMiddleware.uploadArray("images", 5), // ✅ handle multiple images
+  uploadMiddleware.handleUploadErrors,
+  vehicleController.updateVehicleImagesOnly
+);
 
+router.put("/:id/status", authMiddleware, roleMiddleware("owner"), vehicleController.updateVehicleStatus);
+router.delete("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.deleteVehicle);
 
+// Customer routes
+router.get("/available", authMiddleware, roleMiddleware("customer"), vehicleController.getAvailableVehicles);
+router.get("/owner/:id/available", authMiddleware, roleMiddleware("customer"), vehicleController.getAvailableVehiclesByOwner);
 
-router.put("/:id/status", authMiddleware, roleMiddleware("owner"), updateVehicleStatus);
-
-
-// Customer: view all available vehicles of the owner of a selected vehicle
-router.get("/owner/:id/available",authMiddleware,roleMiddleware("customer"),getAvailableVehiclesByOwner);
-
-
-// Customer can also POST ( change owner automatically)
-router.post("/", authMiddleware, addVehicle);
-
-// Owner-only routes(get,put,delete)
-router.get("/", authMiddleware, roleMiddleware("owner"), getVehicles);
-router.get("/:id", authMiddleware, roleMiddleware("owner"), getVehicleById);
-router.put("/:id", authMiddleware, roleMiddleware("owner"), updateVehicle);
-router.delete("/:id", authMiddleware, roleMiddleware("owner"), deleteVehicle);
+// Admin routes
+router.get("/admin/available", authMiddleware, roleMiddleware("admin"), vehicleController.getAllAvailableVehicles);
+router.get("/admin/unavailable", authMiddleware, roleMiddleware("admin"), vehicleController.getAllUnavailableVehicles);
+router.get("/admin/unverified", authMiddleware, roleMiddleware("admin"), vehicleController.getAllUnvarifiedVehicles);
+router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), vehicleController.adminVerifyVehicle);
+router.put("/:id/verification", authMiddleware, roleMiddleware("admin"), vehicleController.adminUpdateVerificationStatus);
 
 module.exports = router;

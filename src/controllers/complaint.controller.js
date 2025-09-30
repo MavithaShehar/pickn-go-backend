@@ -20,6 +20,16 @@ class ComplaintController {
       res.status(400).json({ error: error.message });
     }
   }
+  // Get all complaints created by the current user (customer)
+static async getMyComplaints(req, res) {
+  try {
+    const userId = req.user._id;
+    const complaints = await ComplaintService.getComplaintsByUser(userId);
+    res.json(complaints);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
 
   // Get all complaints
   static async getAllComplaints(req, res) {

@@ -16,6 +16,10 @@ router.post('/',roleMiddleware("customer"),
   ComplaintController.createComplaint
 );
 
+
+// Get all complaints created by the authenticated customer
+router.get('/my-complaints', roleMiddleware("customer"), ComplaintController.getMyComplaints);
+
 // Get complaints by status (specific)
 router.get('/status/:status', roleMiddleware("admin"),ComplaintController.getComplaintsByStatus);
 

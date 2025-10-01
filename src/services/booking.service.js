@@ -252,22 +252,33 @@ async function getBookingStatus(bookingId, user) {
   return { bookingStatus: booking.bookingStatus };
 }
 
-// Owner get single booking
-async function getOwnerBookingById(ownerId, bookingId) {
+// owner and customer get by speicfic id
+async function getBookingById(userId, bookingId) {
   const booking = await Booking.findById(bookingId)
     .populate({ path: "vehicleId", select: "_id title year ownerId pricePerDay" })
     .populate({ path: "customerId", select: "_id firstName lastName" });
 
   if (!booking) throw new Error("Booking not found");
 
-  if (booking.vehicleId.ownerId.toString() !== ownerId) {
+  // 🔹 Check access
+  const isOwner = booking.vehicleId.ownerId.toString() === userId;
+  const isCustomer = booking.customerId._id.toString() === userId;
+
+  if (!isOwner && !isCustomer) {
     throw new Error("Not authorized");
   }
 
   return {
     _id: booking._id,
-    vehicleId: { _id: booking.vehicleId._id, title: booking.vehicleId.title, year: booking.vehicleId.year },
-    customerId: { _id: booking.customerId._id, name: `${booking.customerId.firstName} ${booking.customerId.lastName}` },
+    vehicleId: {
+      _id: booking.vehicleId._id,
+      title: booking.vehicleId.title,
+      year: booking.vehicleId.year,
+    },
+    customerId: {
+      _id: booking.customerId._id,
+      name: `${booking.customerId.firstName} ${booking.customerId.lastName}`,
+    },
     bookingStartDate: booking.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: booking.bookingEndDate.toISOString().split("T")[0],
     totalPrice: booking.totalPrice,
@@ -392,7 +403,7 @@ module.exports = {
   manageBookingByOwner,
   getBookingStatus,
   getConfirmedBookings,
-  getOwnerBookingById,
+  getBookingById,
   getOwnerRentalHistory,
   getOwnerOngoingBookings,
   getOwnerUpcomingBookings,

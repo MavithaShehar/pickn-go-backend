@@ -145,7 +145,6 @@ exports.deleteVehicle = async (req, res) => {
   }
 };
 
-// Other unchanged functions (availability, admin verify, etc.)
 exports.getAvailableVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAvailableVehicles();
@@ -154,6 +153,7 @@ exports.getAvailableVehicles = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 exports.getAllAvailableVehicles = async (req, res) => {
   try {

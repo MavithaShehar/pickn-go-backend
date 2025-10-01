@@ -33,7 +33,7 @@ router.get(
   '/owner',
   authMiddleware,
   roleMiddleware('owner'),
-  DamageReportController.getOwnerDamageReports // new method
+  DamageReportController.getOwnerDamageReports 
 );
 
 

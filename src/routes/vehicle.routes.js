@@ -16,7 +16,7 @@ router.post(
   vehicleController.addVehicle
 );
 
-router.get("/available", vehicleController.getAvailableVehicles);
+router.get("/owner/my", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicles);
 router.get("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicleById);
 router.put("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.updateVehicle);
 

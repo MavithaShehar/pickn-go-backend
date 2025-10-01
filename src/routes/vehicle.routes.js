@@ -16,7 +16,7 @@ router.post(
   vehicleController.addVehicle
 );
 
-router.get("/", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicles);
+router.get("/available", vehicleController.getAvailableVehicles);
 router.get("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicleById);
 router.put("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.updateVehicle);
 
@@ -33,7 +33,7 @@ router.put("/:id/status", authMiddleware, roleMiddleware("owner"), vehicleContro
 router.delete("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.deleteVehicle);
 
 // Customer routes
-router.get("/available", authMiddleware, roleMiddleware("customer"), vehicleController.getAvailableVehicles);
+router.get("/available", vehicleController.getAvailableVehicles);
 router.get("/owner/:id/available", authMiddleware, roleMiddleware("customer"), vehicleController.getAvailableVehiclesByOwner);
 
 // Admin routes

@@ -91,14 +91,10 @@ async function deleteVehicle(ownerId, vehicleId) {
   }
 }
 
-// Get available vehicles (for customers)
 async function getAvailableVehicles() {
-  try {
-    const vehicles = await Vehicle.find({ status: "available", verificationStatus: true });
-    return { success: true, data: vehicles };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
+  // Only verified and available vehicles
+  const vehicles = await Vehicle.find({ status: "available", verificationStatus: true });
+  return vehicles;
 }
 
 // Admin: get all available vehicles

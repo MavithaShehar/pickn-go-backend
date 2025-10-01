@@ -155,6 +155,7 @@ exports.getAvailableVehicles = async (req, res) => {
 };
 
 
+
 exports.getAllAvailableVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAllAvailableVehicles();

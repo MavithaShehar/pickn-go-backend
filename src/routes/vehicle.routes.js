@@ -7,6 +7,12 @@ const uploadMiddleware = require("../middlewares/uploadMiddleware"); // ✅ add 
 
 const router = express.Router();
 
+// ---------------- Public Route ----------------
+// This MUST come first and NOT have authMiddleware
+router.get("/available", vehicleController.getAvailableVehicles);
+
+// ---------------- Booking Count Routes ----------------
+// Only include authMiddleware if needed inside that route
 router.use("/", vehicleBookingCountRoutes);
 
 // Owner routes

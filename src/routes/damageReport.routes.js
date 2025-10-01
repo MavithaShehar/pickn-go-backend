@@ -1,7 +1,7 @@
 // routes/damageReport.routes.js
 const express = require('express');
 const router = express.Router();
-const { upload } = require('../middlewares/uploadMiddleware');
+const uploadMiddleware = require('../middlewares/uploadMiddleware');
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 const DamageReportController = require('../controllers/damgeReport.controller');
@@ -10,7 +10,8 @@ const DamageReportController = require('../controllers/damgeReport.controller');
 router.post(
   '/',
   authMiddleware,
-  upload.array('images', 5),roleMiddleware('customer'),
+  roleMiddleware('customer'),
+  uploadMiddleware.uploadArray('images', 5),
   DamageReportController.createDamageReport
 );
 
@@ -19,7 +20,8 @@ router.post(
 router.patch(
   '/:id',
   authMiddleware,
-  upload.array('images', 5),roleMiddleware('customer'),
+  roleMiddleware('customer'),
+  uploadMiddleware.uploadArray('images', 5),
   DamageReportController.updateDamageReport
 );
 

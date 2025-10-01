@@ -136,6 +136,8 @@ static async getComplaintsByUser(userId) {
       throw new Error(`Error updating complaint status: ${error.message}`);
     }
   }
+
+  
    // Delete complaint by ID
   static async deleteComplaint(id) {
     try {

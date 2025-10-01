@@ -7,12 +7,13 @@ const uploadMiddleware = require("../middlewares/uploadMiddleware"); // ✅ add 
 
 const router = express.Router();
 
-// ---------------- Public Route ----------------
+
 // This MUST come first and NOT have authMiddleware
 router.get("/available", vehicleController.getAvailableVehicles);
 
 // ---------------- Booking Count Routes ----------------
 // Only include authMiddleware if needed inside that route
+//  no need to check using postman for this route this is in vehiclebookingco
 router.use("/", vehicleBookingCountRoutes);
 
 // Owner routes
@@ -25,7 +26,7 @@ router.post(
   vehicleController.addVehicle
 );
 
-router.get("/owner/my", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicles);
+router.get("/owner/vehicle", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicles);
 router.get("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.getVehicleById);
 router.put("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.updateVehicle);
 
@@ -42,13 +43,14 @@ router.put("/:id/status", authMiddleware, roleMiddleware("owner"), vehicleContro
 router.delete("/:id", authMiddleware, roleMiddleware("owner"), vehicleController.deleteVehicle);
 
 // Customer routes
-router.get("/available", vehicleController.getAvailableVehicles);
+// Get available vehicles by a specific owner -getting access denied error
 router.get("/owner/:id/available", authMiddleware, roleMiddleware("customer"), vehicleController.getAvailableVehiclesByOwner);
 
 // Admin routes
 router.get("/admin/available", authMiddleware, roleMiddleware("admin"), vehicleController.getAllAvailableVehicles);
 router.get("/admin/unavailable", authMiddleware, roleMiddleware("admin"), vehicleController.getAllUnavailableVehicles);
 router.get("/admin/unverified", authMiddleware, roleMiddleware("admin"), vehicleController.getAllUnvarifiedVehicles);
+//this rote is not in postman--this is for admin to verify vehicle
 router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), vehicleController.adminVerifyVehicle);
 router.put("/:id/verification", authMiddleware, roleMiddleware("admin"), vehicleController.adminUpdateVerificationStatus);
 

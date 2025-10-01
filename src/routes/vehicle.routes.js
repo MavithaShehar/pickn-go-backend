@@ -2,9 +2,12 @@ const express = require("express");
 const vehicleController = require("../controllers/vehicle.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+const vehicleBookingCountRoutes = require("./vehicleBookingCount.routes");
 const uploadMiddleware = require("../middlewares/uploadMiddleware"); // ✅ add this
 
 const router = express.Router();
+
+router.use("/", vehicleBookingCountRoutes);
 
 // Owner routes
 router.post(

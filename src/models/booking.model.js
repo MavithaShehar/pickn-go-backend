@@ -18,6 +18,7 @@ const bookingSchema = new mongoose.Schema({
   endOdometer: { type: Number },
   totalMileageUsed: { type: Number },
   extraMileage: { type: Number },
+  ratePerKm: { type: Number },
   extraCharge: { type: Number },
 
   // Handover request flag

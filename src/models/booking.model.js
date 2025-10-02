@@ -11,6 +11,9 @@ const bookingSchema = new mongoose.Schema({
     enum: ["pending", "confirmed", "cancelled", "ongoing", "completed"], 
     default: "pending" 
   },
+   // ✅ New fields for start and end locations
+  startLocation: { type: String, required: true }, 
+  endLocation: { type: String, required: true },
 
   // New fields for mileage tracking
   agreedMileage: { type: Number }, // allowance

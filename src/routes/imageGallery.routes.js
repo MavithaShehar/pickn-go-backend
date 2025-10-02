@@ -4,18 +4,17 @@ const router = express.Router();
 const {
   addImages,
   getAllImages,
-  getImageByIndex,
-  updateImageByIndex,
-  deleteImageByIndex
+  getImageById,
+  updateImageById,
+  deleteImageById
 } = require('../controllers/imageGallery.controller');
-const { uploadArray, uploadSingle, handleUploadErrors } = require('../middlewares/uploadMiddleware');
 
-
+const { uploadSingle, uploadArray, handleUploadErrors } = require('../middlewares/uploadMiddleware');
 
 // POST /api/images — Add one or more images (auto-trim to 5)
 router.post(
   '/images',
-  uploadArray('images', 10),
+  ...uploadArray('images', 10), // Spread the array of middleware
   handleUploadErrors,
   addImages
 );
@@ -23,18 +22,18 @@ router.post(
 // GET /api/images — View all images (0 to 5)
 router.get('/images', getAllImages);
 
-// GET /api/images/:index — View specific image (index 0-4)
-router.get('/images/:index', getImageByIndex);
+// GET /api/images/:id — View specific image by ObjectId
+router.get('/images/:id', getImageById);
 
-// PUT /api/images/:index — Edit specific image
+// PUT /api/images/:id — Edit specific image by ObjectId
 router.put(
-  '/images/:index',
-  uploadSingle('image'),
+  '/images/:id',
+  ...uploadSingle('image'), // Spread the array of middleware
   handleUploadErrors,
-  updateImageByIndex
+  updateImageById
 );
 
-// DELETE /api/images/:index — Delete specific image
-router.delete('/images/:index', deleteImageByIndex);
+// DELETE /api/images/:id — Delete specific image by ObjectId
+router.delete('/images/:id', deleteImageById);
 
 module.exports = router;

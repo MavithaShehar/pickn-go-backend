@@ -1,7 +1,7 @@
 // models/ImageGallery.js
 const mongoose = require('mongoose');
 
-const ImageItemSchema = new mongoose.Schema({
+const imageSchema = new mongoose.Schema({
   data: {
     type: String,
     required: true
@@ -16,17 +16,26 @@ const ImageItemSchema = new mongoose.Schema({
   }
 });
 
-const ImageGallerySchema = new mongoose.Schema({
-  images: [ImageItemSchema]
-}, { timestamps: true });
+const gallerySchema = new mongoose.Schema({
+  images: [imageSchema]
+});
 
-// Ensure only one document exists
-ImageGallerySchema.statics.getSingleton = async function() {
-  let doc = await this.findOne();
-  if (!doc) {
-    doc = await this.create({ images: [] });
+// Get or create singleton gallery
+gallerySchema.statics.getSingleton = async function() {
+  let gallery = await this.findOne();
+  if (!gallery) {
+    gallery = new this({ images: [] });
+    await gallery.save();
   }
-  return doc;
+  return gallery;
 };
 
-module.exports = mongoose.model('ImageGallery', ImageGallerySchema);
+// Maintain maximum 5 images (FIFO)
+gallerySchema.methods.maintainMaxLimit = function() {
+  if (this.images.length > 5) {
+    this.images = this.images.slice(-5); // Keep only last 5
+  }
+  return this.images.length;
+};
+
+module.exports = mongoose.model('ImageGallery', gallerySchema);

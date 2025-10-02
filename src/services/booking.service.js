@@ -394,6 +394,56 @@ async function getOwnerCompletedBookings(ownerId) {
   }));
 }
 
+// Confirm booking (owner sets agreed mileage + start odometer)
+async function confirmBooking(bookingId, ownerId, { agreedMileage, startOdometer }) {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new Error("Booking not found");
+
+  const vehicle = await Vehicle.findById(booking.vehicleId);
+  if (!vehicle || vehicle.ownerId.toString() !== ownerId) throw new Error("Not authorized");
+
+  booking.agreedMileage = agreedMileage;
+  booking.startOdometer = startOdometer;
+  booking.bookingStatus = "ongoing";
+
+  await booking.save();
+  return booking;
+}
+
+// Customer sends handover request
+async function requestHandover(bookingId, customerId) {
+  const booking = await Booking.findOne({ _id: bookingId, customerId });
+  if (!booking) throw new Error("Booking not found or not authorized");
+
+  booking.handoverRequest = true;
+  await booking.save();
+  return booking;
+}
+
+// Owner accepts handover and completes booking
+async function acceptHandover(bookingId, ownerId, { endOdometer, ratePerKm }) {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new Error("Booking not found");
+
+  const vehicle = await Vehicle.findById(booking.vehicleId);
+  if (!vehicle || vehicle.ownerId.toString() !== ownerId) throw new Error("Not authorized");
+
+  // Mileage calculations
+  booking.endOdometer = endOdometer;
+  booking.totalMileageUsed = endOdometer - booking.startOdometer;
+  booking.extraMileage = Math.max(0, booking.totalMileageUsed - booking.agreedMileage);
+  booking.extraCharge = booking.extraMileage * ratePerKm;
+
+  booking.bookingStatus = "completed";
+  vehicle.status = "available";
+
+  await vehicle.save();
+  await booking.save();
+
+  return booking;
+}
+
+
 module.exports = {
   createBooking,
   updateBooking,
@@ -408,4 +458,7 @@ module.exports = {
   getOwnerOngoingBookings,
   getOwnerUpcomingBookings,
   getOwnerCompletedBookings,
+  confirmBooking,
+  requestHandover,
+  acceptHandover,
 };

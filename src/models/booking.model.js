@@ -6,7 +6,27 @@ const bookingSchema = new mongoose.Schema({
   bookingStartDate: { type: Date, required: true },
   bookingEndDate: { type: Date, required: true },
   totalPrice: { type: Number, required: true },
-  bookingStatus: { type: String, enum: ["pending", "confirmed", "cancelled","completed"], default: "pending" },
+  bookingStatus: { 
+    type: String, 
+    enum: ["pending", "confirmed", "cancelled", "ongoing", "completed"], 
+    default: "pending" 
+  },
+   // ✅ New fields for start and end locations
+  startLocation: { type: String, required: true }, 
+  endLocation: { type: String, required: true },
+
+  // New fields for mileage tracking
+  agreedMileage: { type: Number }, // allowance
+  startOdometer: { type: Number },
+  endOdometer: { type: Number },
+  totalMileageUsed: { type: Number },
+  extraMileage: { type: Number },
+  extraCharge: { type: Number },
+
+  // Handover request flag
+  handoverRequest: { type: Boolean, default: false }
+
 }, { timestamps: true });
+  
 
 module.exports = mongoose.model("Booking", bookingSchema);

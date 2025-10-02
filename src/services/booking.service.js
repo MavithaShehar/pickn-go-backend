@@ -61,7 +61,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 
 // Create booking
-async function createBooking(vehicleId, customerId, bookingStartDate, bookingEndDate) {
+async function createBooking(vehicleId, customerId, bookingStartDate, bookingEndDate,startLocation, endLocation) {
   // ✅ Verify customer exists and is verified
   const customer = await User.findById(customerId);
   if (!customer || customer.role !== "customer" || !customer.verificationStatus) {
@@ -102,6 +102,8 @@ async function createBooking(vehicleId, customerId, bookingStartDate, bookingEnd
     bookingEndDate: end,
     totalPrice,
     bookingStatus: "pending",
+    startLocation,   
+     endLocation 
   });
 
   await booking.save();
@@ -135,6 +137,8 @@ async function updateBooking(bookingId, customerId, updates) {
     if (end <= booking.bookingStartDate) throw new Error("End date must be after start date");
     booking.bookingEndDate = end;
   }
+  if (updates.startLocation) booking.startLocation = updates.startLocation;
+  if (updates.endLocation) booking.endLocation = updates.endLocation;
 
   // Recalculate totalPrice using current vehicle price
   const vehicle = await Vehicle.findById(booking.vehicleId);
@@ -200,6 +204,8 @@ async function getCustomerBookings(customerId) {
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
     bookingStatus: b.bookingStatus,
+    startLocation: b.startLocation,
+    endLocation: b.endLocation,
   }));
 }
 
@@ -220,6 +226,8 @@ async function getOwnerBookings(ownerId) {
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
     bookingStatus: b.bookingStatus,
+    startLocation: b.startLocation,
+    endLocation: b.endLocation,
   }));
 }
 
@@ -237,6 +245,8 @@ async function getConfirmedBookings() {
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
     bookingStatus: b.bookingStatus,
+    startLocation: b.startLocation,
+    endLocation: b.endLocation,
   }));
 }
 
@@ -283,6 +293,8 @@ async function getBookingById(userId, bookingId) {
     bookingEndDate: booking.bookingEndDate.toISOString().split("T")[0],
     totalPrice: booking.totalPrice,
     bookingStatus: booking.bookingStatus,
+    startLocation: booking.startLocation,
+    endLocation: booking.endLocation,
   };
 }
 
@@ -308,6 +320,8 @@ async function getOwnerRentalHistory(ownerId) {
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
     bookingStatus: b.bookingStatus,
+    startLocation: b.startLocation,
+    endLocation: b.endLocation,
   }));
 }
 
@@ -335,6 +349,8 @@ async function getOwnerOngoingBookings(ownerId) {
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
     bookingStatus: b.bookingStatus,
+    startLocation: b.startLocation,
+    endLocation: b.endLocation,
   }));
 }
 
@@ -367,6 +383,8 @@ async function getOwnerUpcomingBookings(ownerId) {
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
     bookingStatus: b.bookingStatus,
+    startLocation: b.startLocation,
+    endLocation: b.endLocation,
   }));
 }
 
@@ -391,8 +409,60 @@ async function getOwnerCompletedBookings(ownerId) {
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
     bookingStatus: b.bookingStatus,
+    startLocation: b.startLocation,
+    endLocation: b.endLocation,
   }));
 }
+
+// Confirm booking (owner sets agreed mileage + start odometer)
+async function confirmBooking(bookingId, ownerId, { agreedMileage, startOdometer }) {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new Error("Booking not found");
+
+  const vehicle = await Vehicle.findById(booking.vehicleId);
+  if (!vehicle || vehicle.ownerId.toString() !== ownerId) throw new Error("Not authorized");
+
+  booking.agreedMileage = agreedMileage;
+  booking.startOdometer = startOdometer;
+  booking.bookingStatus = "ongoing";
+
+  await booking.save();
+  return booking;
+}
+
+// Customer sends handover request
+async function requestHandover(bookingId, customerId) {
+  const booking = await Booking.findOne({ _id: bookingId, customerId });
+  if (!booking) throw new Error("Booking not found or not authorized");
+
+  booking.handoverRequest = true;
+  await booking.save();
+  return booking;
+}
+
+// Owner accepts handover and completes booking
+async function acceptHandover(bookingId, ownerId, { endOdometer, ratePerKm }) {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new Error("Booking not found");
+
+  const vehicle = await Vehicle.findById(booking.vehicleId);
+  if (!vehicle || vehicle.ownerId.toString() !== ownerId) throw new Error("Not authorized");
+
+  // Mileage calculations
+  booking.endOdometer = endOdometer;
+  booking.totalMileageUsed = endOdometer - booking.startOdometer;
+  booking.extraMileage = Math.max(0, booking.totalMileageUsed - booking.agreedMileage);
+  booking.extraCharge = booking.extraMileage * ratePerKm;
+
+  booking.bookingStatus = "completed";
+  vehicle.status = "available";
+
+  await vehicle.save();
+  await booking.save();
+
+  return booking;
+}
+
 
 module.exports = {
   createBooking,
@@ -408,4 +478,7 @@ module.exports = {
   getOwnerOngoingBookings,
   getOwnerUpcomingBookings,
   getOwnerCompletedBookings,
+  confirmBooking,
+  requestHandover,
+  acceptHandover,
 };

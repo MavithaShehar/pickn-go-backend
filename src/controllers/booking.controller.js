@@ -84,6 +84,16 @@ exports.getBookingStatus = async (req, res) => {
   }
 };
 
+// Customer requests handover
+exports.requestHandover = async (req, res) => {
+  try {
+    const booking = await bookingService.requestHandover(req.params.id, req.user.id);
+    res.json({ message: "Handover requested", booking });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 // ================================
 // Owner Controllers
 // ================================
@@ -157,6 +167,34 @@ exports.getOwnerCompletedBookings = async (req, res) => {
     res.json(bookings);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// Owner confirms booking with mileage + start odometer
+exports.confirmBooking = async (req, res) => {
+  try {
+    const booking = await bookingService.confirmBooking(
+      req.params.id,
+      req.user.id,
+      req.body
+    );
+    res.json({ message: "Booking confirmed & started", booking });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// Owner accepts handover & completes booking
+exports.acceptHandover = async (req, res) => {
+  try {
+    const booking = await bookingService.acceptHandover(
+      req.params.id,
+      req.user.id,
+      req.body
+    );
+    res.json({ message: "Booking completed", booking });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };
 

@@ -12,12 +12,14 @@ const Booking = require("../models/booking.model");
 // Create a booking
 exports.createBooking = async (req, res) => {
   try {
-    const { vehicleId, bookingStartDate, bookingEndDate } = req.body;
+    const { vehicleId, bookingStartDate, bookingEndDate, startLocation,endLocation } = req.body;
     const booking = await bookingService.createBooking(
       vehicleId,
       req.user.id,
       bookingStartDate,
-      bookingEndDate
+      bookingEndDate,
+      startLocation,
+      endLocation
     );
 
     // Send booking confirmation email

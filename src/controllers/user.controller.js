@@ -20,6 +20,7 @@ const registerUser = async (req, res, next) => {
       postalCode,
       address,
       avatar, // from body or multer convert
+      gender, 
     } = req.body;
 
     const emailNorm = (email || "").trim().toLowerCase();
@@ -52,6 +53,11 @@ const registerUser = async (req, res, next) => {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
+     // Gender validation
+    if (!gender || !["male", "female"].includes(gender.toLowerCase())) {
+      return res.status(400).json({ message: "Gender must be either 'male' or 'female'" });
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -78,6 +84,7 @@ const registerUser = async (req, res, next) => {
       phoneNumber,
       password: hashedPassword,
       role,
+      gender: gender.toLowerCase(),
       addressLine1: line1,
       addressLine2: (addressLine2 ?? "").trim(),
       postalCode: (postalCode ?? "").trim(),

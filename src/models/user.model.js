@@ -19,6 +19,13 @@ const userSchema = new mongoose.Schema(
 
     profilePhoto: { type: String, trim: true },
 
+     // Gender field
+    gender: {
+      type: String,
+      enum: ["male", "female"],
+      required: true,   // make it required if needed
+    },
+
     // Address fields
     addressLine1: { type: String, required: true, trim: true }, // required
     addressLine2: { type: String, trim: true },                 // optional

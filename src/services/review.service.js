@@ -2,6 +2,7 @@ const Review = require("../models/review.model");
 const Booking = require("../models/booking.model");
 const Vehicle = require("../models/vehicle.model");
 
+// Create a review
 async function createReview(userId, bookingId, vehicleId, rating, comment) {
   const booking = await Booking.findOne({ _id: bookingId, customerId: userId });
   if (!booking) throw new Error("You are not allowed to review this booking");
@@ -16,7 +17,7 @@ async function createReview(userId, bookingId, vehicleId, rating, comment) {
   return await review.save();
 }
 
-
+// Update review (only the same user can update)
 async function updateReview(userId, reviewId, updateData) {
   const review = await Review.findOneAndUpdate(
     { _id: reviewId, userId },
@@ -27,7 +28,7 @@ async function updateReview(userId, reviewId, updateData) {
   return review;
 }
 
-// Delete review
+// Delete review (only the same user can delete)
 async function deleteReview(userId, reviewId) {
   const review = await Review.findOneAndDelete({ _id: reviewId, userId });
   if (!review) throw new Error("Review not found or not yours");
@@ -58,6 +59,20 @@ async function adminDeleteReview(reviewId) {
   return await Review.findByIdAndDelete(reviewId);
 }
 
+// Customer: get their own reviews
+async function getReviewsByUser(userId) {
+  return await Review.find({ userId })
+    .populate("vehicleId", "name model")
+    .populate("bookingId", "startDate endDate");
+}
+
+// Public: get reviews for a specific vehicle
+async function getReviewsForVehicle(vehicleId) {
+  return await Review.find({ vehicleId })
+    .populate("userId", "firstName lastName")
+    .populate("bookingId", "startDate endDate");
+}
+
 module.exports = {
   createReview,
   updateReview,
@@ -65,4 +80,6 @@ module.exports = {
   getReviewsForOwner,
   getAllReviews,
   adminDeleteReview,
+  getReviewsByUser,
+  getReviewsForVehicle,
 };

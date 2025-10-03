@@ -1,39 +1,45 @@
 // controllers/imageController.js
 const imageService = require('../services/imageGallery.service');
 
-// POST /api/images → add image(s)
+// POST /api/images → add image(s) - ONLY returns added images info
 const addImages = async (req, res) => {
   try {
-    if (!req.body.images || !Array.isArray(req.body.images)) {
-      return res.status(400).json({ message: 'images array is required' });
-    }
+    const result = await imageService.addImages(req);
     
-    const result = await imageService.addImages(req.body.images);
-    res.status(200).json({ 
+    const response = {
       message: 'Images added successfully',
       addedCount: result.addedImages.length,
       addedImages: result.addedImages,
       totalImages: result.totalImages,
-      allImages: result.images.map(img => ({ 
-        _id: img._id, 
-        mimeType: img.mimeType, 
-        uploadedAt: img.uploadedAt 
-      }))
-    });
+      limitReached: result.limitReached
+    };
+    
+    // Only include removal info if images were actually removed
+    if (result.removedCount > 0) {
+      response.removedCount = result.removedCount;
+      response.removedImages = result.removedImages;
+      response.message = `Images added successfully. ${result.removedCount} oldest image(s) were removed to maintain limit.`;
+    }
+    
+    res.status(200).json(response);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
-// GET /api/images → view all
+// GET /api/images → view all images (separate endpoint)
 const getAllImages = async (req, res) => {
   try {
     const images = await imageService.getAllImages();
     res.json({ 
       images: images.map(img => ({ 
-        _id: img._id, 
-        mimeType: img.mimeType, 
-        uploadedAt: img.uploadedAt 
+        _id: img._id,
+        filename: img.filename,
+        originalName: img.originalname,
+        mimeType: img.mimetype,
+        size: img.size,
+        uploadedAt: img.uploadedAt,
+        url: `/api/images/${img._id}/file`
       })),
       count: images.length,
       message: `Retrieved ${images.length} images`
@@ -43,7 +49,9 @@ const getAllImages = async (req, res) => {
   }
 };
 
-// GET /api/images/:id → view specific image
+// ... other controller functions remain the same ...
+
+// GET /api/images/:id → view specific image metadata
 const getImageById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -52,11 +60,24 @@ const getImageById = async (req, res) => {
       message: `Image retrieved successfully`,
       image: {
         _id: image._id,
-        data: image.data, // Include base64 data for single image retrieval
-        mimeType: image.mimeType,
-        uploadedAt: image.uploadedAt
+        filename: image.filename,
+        originalName: image.originalname,
+        mimeType: image.mimetype,
+        size: image.size,
+        uploadedAt: image.uploadedAt,
+        url: `/api/images/${image._id}/file`
       }
     });
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+};
+
+// GET /api/images/:id/file → serve actual image file
+const getImageFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await imageService.serveImageFile(id, res);
   } catch (error) {
     res.status(404).json({ message: error.message });
   }
@@ -65,17 +86,18 @@ const getImageById = async (req, res) => {
 // PUT /api/images/:id → edit specific image
 const updateImageById = async (req, res) => {
   try {
-    if (!req.body.image) {
-      return res.status(400).json({ message: 'image (base64) is required' });
-    }
     const { id } = req.params;
-    const updated = await imageService.updateImageById(id, req.body.image);
+    const updated = await imageService.updateImageById(id, req);
     res.json({
       message: `Image updated successfully`,
       image: {
         _id: updated._id,
-        mimeType: updated.mimeType,
-        uploadedAt: updated.uploadedAt
+        filename: updated.filename,
+        originalName: updated.originalname,
+        mimeType: updated.mimetype,
+        size: updated.size,
+        uploadedAt: updated.uploadedAt,
+        url: `/api/images/${updated._id}/file`
       }
     });
   } catch (error) {
@@ -102,6 +124,7 @@ module.exports = {
   addImages,
   getAllImages,
   getImageById,
+  getImageFile,
   updateImageById,
   deleteImageById
 };

@@ -11,24 +11,24 @@ const {
 
 // Customer uploads license
 router.post(
-  "/:bookingId/upload-license",
+  "/upload-license",
   authMiddleware,
   roleMiddleware("customer"),
   uploadLicense,
   uploadLicenseToMongo
 );
 
-// Owner views license
+// Owner views license of a customer
 router.get(
-  "/:bookingId/view-license",
+  "/:userId/view-license",
   authMiddleware,
   roleMiddleware("owner"),
   viewLicenseByOwner
 );
 
-// Owner verifies license
+// Owner verifies license of a customer
 router.patch(
-  "/:bookingId/verify-license",
+  "/:userId/verify-license",
   authMiddleware,
   roleMiddleware("owner"),
   verifyLicenseByOwner

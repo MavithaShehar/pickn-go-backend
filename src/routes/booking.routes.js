@@ -7,12 +7,15 @@ const {
   getOwnerBookings,
   manageBookingByOwner,
   getBookingStatus,
-  getOwnerBookingById,
+  getBookingById,
   getConfirmedBookings,
   getOwnerRentalHistory,
   getOwnerOngoingBookings,
   getOwnerUpcomingBookings,
   getOwnerCompletedBookings,
+  confirmBooking,
+  requestHandover,
+  acceptHandover,
 
 } = require("../controllers/booking.controller");
 
@@ -35,12 +38,18 @@ router.get("/customer", authMiddleware, roleMiddleware("customer"), getCustomerB
 // Get booking status by ID for customer
 router.get("/:id/status", authMiddleware, roleMiddleware("customer"), getBookingStatus);
 
+// For customers
+router.get("/customer/:id", authMiddleware, roleMiddleware("customer"), getBookingById);
+
+
 // Update a booking (customer)
 router.put("/:id", authMiddleware, roleMiddleware("customer"), updateBooking);
 
 // Delete a booking (customer)
 router.delete("/:id", authMiddleware, roleMiddleware("customer"), deleteBooking);
 
+// Customer sends handover request
+router.put("/:id/request-handover", authMiddleware,roleMiddleware("customer"), requestHandover);
 
 // =====================
 // Owner Routes
@@ -61,14 +70,17 @@ router.get("/owner/completed", authMiddleware, roleMiddleware("owner"), getOwner
 // Get all bookings for owner
 router.get("/owner", authMiddleware, roleMiddleware("owner"), getOwnerBookings);
 
-// Get a specific booking by ID for owner
-router.get("/owner/:id", authMiddleware, roleMiddleware("owner"), getOwnerBookingById);
+// For owners
+router.get("/owner/:id", authMiddleware, roleMiddleware("owner"), getBookingById);
 
 // Owner manages a booking (confirm/cancel)
 router.put("/owner/:id", authMiddleware, roleMiddleware("owner"), manageBookingByOwner);
 
+// Owner confirms booking with mileage + start odometer
+router.put("/owner/:id/confirm", authMiddleware, roleMiddleware("owner"), confirmBooking);
 
-
+// Owner accepts handover
+router.put("/owner/:id/accept-handover", authMiddleware, roleMiddleware("owner"), acceptHandover);
 
 
 // =====================

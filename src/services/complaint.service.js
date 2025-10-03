@@ -33,6 +33,17 @@ class ComplaintService {
     }
   }
 
+  // Get complaints by user ID
+static async getComplaintsByUser(userId) {
+  try {
+    return await Complaint.find({ user: userId })
+      .populate('user', 'firstname email')
+      .sort({ dateCreated: -1 });
+  } catch (error) {
+    throw new Error(`Error fetching your complaints: ${error.message}`);
+  }
+}
+
   // Get all complaints
   static async getAllComplaints() {
     try {
@@ -125,6 +136,8 @@ class ComplaintService {
       throw new Error(`Error updating complaint status: ${error.message}`);
     }
   }
+
+  
    // Delete complaint by ID
   static async deleteComplaint(id) {
     try {

@@ -1,4 +1,3 @@
-// routes/user.routes.js
 const express = require("express");
 const {
   registerUser,
@@ -13,46 +12,89 @@ const {
   adminSuspendUser,
   getUnverifiedUsers,
   getAllUsers,
-  updateAvatar, // <— add this
+  updateAvatar,
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
-
-// ✅ use your single validator file
 const {
   validateUser,
   validateResetPassword,
   validateEditProfile,
-  handleValidation,   // <— add this
+  handleValidation,
 } = require("../middlewares/validateUser");
 
-// Multer for avatar upload
 const multer = require("multer");
+
+// ---------------- Multer Setup ----------------
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("image/")) cb(null, true);
-  else cb(new Error("Only image files are allowed!"), false);
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+  if (allowedTypes.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Only jpg/jpeg/png images are allowed!"), false);
 };
-const uploadAvatar = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } }).single("avatar");
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+});
 
+// ---------------- Middleware to handle upload errors ----------------
+const handleUploadErrors = (err, req, res, next) => {
+  if (err) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "File size too large. Max 5MB allowed." });
+    }
+    return res.status(400).json({ message: err.message });
+  }
+  next();
+};
+
+// ---------------- Middleware to convert uploaded file to Base64 ----------------
+const convertAvatarToBase64 = (req, res, next) => {
+  if (req.file) {
+    req.body.avatar = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+  }
+  next();
+};
+
+// ---------------- Router ----------------
 const router = express.Router();
 
-// Public
-router.post("/register", validateUser, handleValidation, registerUser);
+// ---------------- Public Routes ----------------
+// Register user with avatar (form-data)
+router.post(
+  "/register",
+  upload.single("avatar"),    // field name in form-data
+  handleUploadErrors,
+  convertAvatarToBase64,
+  validateUser,
+  handleValidation,
+  registerUser
+);
+
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", validateResetPassword, handleValidation, resetPassword);
 
-// Protected
+// ---------------- Protected Routes ----------------
 router.get("/profile", authMiddleware, getProfile);
-router.put("/profile", authMiddleware, validateEditProfile, handleValidation, editProfile);
+router.put(
+  "/profile",
+  authMiddleware,
+  upload.single("avatar"),
+  handleUploadErrors,
+  convertAvatarToBase64,
+  validateEditProfile,
+  handleValidation,
+  editProfile
+);
 router.delete("/profile", authMiddleware, deleteProfile);
 
-// Update avatar
-router.put("/profile/avatar", authMiddleware, uploadAvatar, updateAvatar); // <— new route
+// Update avatar separately
+router.put("/profile/avatar", authMiddleware, upload.single("avatar"), handleUploadErrors, updateAvatar);
 
-// Admin
+// ---------------- Admin Routes ----------------
 router.get("/alluser", authMiddleware, roleMiddleware("admin"), getAllUsers);
 router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
 router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyUser);

@@ -12,12 +12,14 @@ const Booking = require("../models/booking.model");
 // Create a booking
 exports.createBooking = async (req, res) => {
   try {
-    const { vehicleId, bookingStartDate, bookingEndDate } = req.body;
+    const { vehicleId, bookingStartDate, bookingEndDate, startLocation,endLocation } = req.body;
     const booking = await bookingService.createBooking(
       vehicleId,
       req.user.id,
       bookingStartDate,
-      bookingEndDate
+      bookingEndDate,
+      startLocation,
+      endLocation
     );
 
     // Send booking confirmation email
@@ -84,6 +86,16 @@ exports.getBookingStatus = async (req, res) => {
   }
 };
 
+// Customer requests handover
+exports.requestHandover = async (req, res) => {
+  try {
+    const booking = await bookingService.requestHandover(req.params.id, req.user.id);
+    res.json({ message: "Handover requested", booking });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 // ================================
 // Owner Controllers
 // ================================
@@ -109,15 +121,16 @@ exports.manageBookingByOwner = async (req, res) => {
   }
 };
 
-// Get a specific booking by ID for owner
-exports.getOwnerBookingById = async (req, res) => {
+// controllers/booking.controller.js
+exports.getBookingById = async (req, res) => {
   try {
-    const booking = await bookingService.getOwnerBookingById(req.user.id, req.params.id);
+    const booking = await bookingService.getBookingById(req.user.id, req.params.id);
     res.json(booking);
   } catch (err) {
     res.status(404).json({ message: err.message });
   }
 };
+
 
 // Rental History (past bookings)
 exports.getOwnerRentalHistory = async (req, res) => {
@@ -156,6 +169,34 @@ exports.getOwnerCompletedBookings = async (req, res) => {
     res.json(bookings);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// Owner confirms booking with mileage + start odometer
+exports.confirmBooking = async (req, res) => {
+  try {
+    const booking = await bookingService.confirmBooking(
+      req.params.id,
+      req.user.id,
+      req.body
+    );
+    res.json({ message: "Booking confirmed & started", booking });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+// Owner accepts handover & completes booking
+exports.acceptHandover = async (req, res) => {
+  try {
+    const booking = await bookingService.acceptHandover(
+      req.params.id,
+      req.user.id,
+      req.body
+    );
+    res.json({ message: "Booking completed", booking });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };
 

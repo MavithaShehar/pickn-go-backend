@@ -4,6 +4,7 @@ const Booking = require('../models/booking.model');
 const Vehicle = require('../models/vehicle.model'); 
 const fs = require('fs').promises;
 const path = require('path');
+const user=require('../models/user.model');
 
 class DamageReportService {
 
@@ -21,7 +22,7 @@ class DamageReportService {
     }
     return { valid: true };
   }
-
+   
   // Create damage report
   static async createDamageReport(reportData, files) {
     const session = await DamageReport.startSession();
@@ -46,11 +47,16 @@ class DamageReportService {
           throw new Error(validation.message);
         }
       }
+      const customer = await user.findById(reportData.customerId, 'phoneNumber');
+     if (!customer || !customer.phoneNumber) {
+       throw new Error('Customer phone number not found');
+     }
 
       // 3. Create report
       const report = new DamageReport({
         ...reportData,
         customerId: reportData.customerId,
+        phoneNumber: customer.phoneNumber,
         vehicleId: booking.vehicleId,
         images: files ? files.map(f => f.path) : []
       });
@@ -61,7 +67,7 @@ class DamageReportService {
 
       // Populate relations for response
       return await DamageReport.findById(report._id)
-        .populate('customerId', 'firstName lastName email')
+        .populate('customerId', 'firstName lastName email phoneNumber')
         .populate('vehicleId', 'title')
         .populate('bookingId', 'bookingStartDate bookingEndDate');
     } catch (error) {
@@ -136,7 +142,7 @@ static async updateDamageReport(reportId, customerId, updateData, files) {
     session.endSession();
 
     return await DamageReport.findById(updatedReport._id)
-      .populate('customerId', 'firstName lastName email')
+      .populate('customerId', 'firstName lastName email phoneNumber ')
       .populate('vehicleId', 'title')
       .populate('bookingId', 'bookingStartDate bookingEndDate');
   } catch (error) {
@@ -149,7 +155,7 @@ static async updateDamageReport(reportId, customerId, updateData, files) {
   // Get all reports (admin view)
   static async getAllDamageReports() {
     return await DamageReport.find()
-      .populate('customerId', 'firstName lastName')
+      .populate('customerId', 'firstName lastName phoneNumber ')
       .populate('vehicleId', 'title')
       .populate('bookingId', 'bookingStartDate bookingEndDate')
       .sort({ dateReported: -1 });
@@ -167,7 +173,7 @@ static async updateDamageReport(reportId, customerId, updateData, files) {
 
     // Step 2: Get damage reports for those vehicles
     return await DamageReport.find({ vehicleId: { $in: vehicleIds } })
-      .populate('customerId', 'firstName lastName email')
+      .populate('customerId', 'firstName lastName email phoneNumber')
       .populate('vehicleId', 'title')
       .populate('bookingId', 'bookingStartDate bookingEndDate')
       .sort({ dateReported: -1 });
@@ -177,6 +183,7 @@ static async updateDamageReport(reportId, customerId, updateData, files) {
   // Get reports by customer
   static async getReportsByCustomer(customerId) {
     return await DamageReport.find({ customerId })
+      .populate('customerId', 'firstName lastName phoneNumber')
       .populate('vehicleId', 'title')
       .populate('bookingId', 'bookingStartDate bookingEndDate')
       .sort({ dateReported: -1 });
@@ -194,7 +201,7 @@ static async updateDamageReport(reportId, customerId, updateData, files) {
       { status },
       { new: true, runValidators: true }
     )
-      .populate('customerId', 'firstName lastName email')
+      .populate('customerId', 'firstName lastName email phoneNumber')
       .populate('vehicleId', 'title')
       .populate('bookingId', 'bookingStartDate bookingEndDate');
 

@@ -6,12 +6,19 @@ const imageSchema = new mongoose.Schema({
     type: String,
     //required: true
   },
+  path: {
+    type: String,
+    //required: true
+  },
   
   mimeType: {
     type: String,
     required: true
   },
- 
+  size: {
+    type: Number,
+    //required: true
+  },
   uploadedAt: {
     type: Date,
     default: Date.now

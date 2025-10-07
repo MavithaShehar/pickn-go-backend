@@ -49,40 +49,17 @@ const getAllImages = async (req, res) => {
   }
 };
 
-// ... other controller functions remain the same ...
 
-// GET /api/images/:id → view specific image metadata
+
+// GET /api/images/:id → Serve ACTUAL IMAGE FILE directly
 const getImageById = async (req, res) => {
   try {
     const { id } = req.params;
-    const image = await imageService.getImageById(id);
-    res.json({
-      message: `Image retrieved successfully`,
-      image: {
-        _id: image._id,
-        filename: image.filename,
-        originalName: image.originalname,
-        mimeType: image.mimetype,
-        size: image.size,
-        uploadedAt: image.uploadedAt,
-        url: `/api/images/${image._id}/file`
-      }
-    });
+    await imageService.getImageById(id, res); // This sends the actual image file
   } catch (error) {
     res.status(404).json({ message: error.message });
   }
 };
-
-// GET /api/images/:id/file → serve actual image file
-const getImageFile = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await imageService.serveImageFile(id, res);
-  } catch (error) {
-    res.status(404).json({ message: error.message });
-  }
-};
-
 // PUT /api/images/:id → edit specific image
 const updateImageById = async (req, res) => {
   try {
@@ -124,7 +101,6 @@ module.exports = {
   addImages,
   getAllImages,
   getImageById,
-  getImageFile,
   updateImageById,
   deleteImageById
 };

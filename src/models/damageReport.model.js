@@ -40,7 +40,10 @@ const damageReportSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  
+  phoneNumber: {  
+  type: String,
+  required: false // will be auto-filled, so not required on input
+},
   damageType: {
     type: String,
     enum: {

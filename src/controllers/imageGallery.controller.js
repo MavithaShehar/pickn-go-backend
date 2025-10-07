@@ -51,15 +51,7 @@ const getAllImages = async (req, res) => {
 
 
 
-// GET /api/images/:id → Serve ACTUAL IMAGE FILE directly
-const getImageById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await imageService.getImageById(id, res); // This sends the actual image file
-  } catch (error) {
-    res.status(404).json({ message: error.message });
-  }
-};
+
 // PUT /api/images/:id → edit specific image
 const updateImageById = async (req, res) => {
   try {
@@ -100,7 +92,6 @@ const deleteImageById = async (req, res) => {
 module.exports = {
   addImages,
   getAllImages,
-  getImageById,
   updateImageById,
   deleteImageById
 };

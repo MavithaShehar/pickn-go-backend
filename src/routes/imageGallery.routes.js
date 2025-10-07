@@ -4,7 +4,6 @@ const router = express.Router();
 const {
   addImages,
   getAllImages,
-  getImageById,
   updateImageById,
   deleteImageById
 } = require('../controllers/imageGallery.controller');
@@ -26,8 +25,6 @@ router.post(
 // GET /api/images — View all images metadata (0 to 5)
 router.get('/images', getAllImages);
 
-// GET /api/images/:id — View specific image metadata
-router.get('/images/:id', getImageById);
 
 // PUT /api/images/:id — Edit specific image by ObjectId
 router.put(

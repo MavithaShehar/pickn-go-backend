@@ -77,45 +77,6 @@ const getAllImages = async () => {
 // GET image by ObjectId
 
 
-const getImageById = async (id, res) => {
-  // Validate ObjectId format
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error('Invalid image ID format');
-  }
-
-  const gallery = await ImageGallery.getSingleton();
-  const image = gallery.images.id(id);
-  
-  if (!image) {
-    throw new Error('Image not found with this ID');
-  }
-   console.log('🔍 Looking for image:', {
-    _id: image._id,
-    storedPath: image.path,
-    filename: image.filename
-  });
-  
-  // FIX: Use the stored path directly (it's already absolute)
-  if (!image.path || typeof image.path !== 'string') {
-    throw new Error('Image path is invalid or missing');
-  }
-  
- 
-
-  // Check if file exists at the stored path
-  if (!fs.existsSync(image.path)) {
-    console.log('❌ File not found at:', image.path);
-    console.log('📁 Current working directory:', process.cwd());
-    throw new Error(`Image file not found at: ${image.path}`);
-  }
-  
-  console.log('✅ File found, serving:', image.path);
-  
-  // Set appropriate headers and send the actual image file
-  res.setHeader('Content-Type', image.mimeType);
-  res.setHeader('Content-Disposition', `inline; filename="${image.originalName}"`);
-  res.sendFile(path.resolve(filePath));
-};
 
 
 // UPDATE image by ObjectId
@@ -193,7 +154,6 @@ const getGallery = async () => {
 module.exports = {
   addImages,
   getAllImages,
-  getImageById,
   updateImageById,
   deleteImageById,
   getGallery

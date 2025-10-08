@@ -2,13 +2,22 @@
 const mongoose = require('mongoose');
 
 const imageSchema = new mongoose.Schema({
-  data: {
+  filename: {
     type: String,
-    required: true
+    //required: true
   },
+  path: {
+    type: String,
+    //required: true
+  },
+  
   mimeType: {
     type: String,
     required: true
+  },
+  size: {
+    type: Number,
+    //required: true
   },
   uploadedAt: {
     type: Date,
@@ -28,14 +37,6 @@ gallerySchema.statics.getSingleton = async function() {
     await gallery.save();
   }
   return gallery;
-};
-
-// Maintain maximum 5 images (FIFO)
-gallerySchema.methods.maintainMaxLimit = function() {
-  if (this.images.length > 5) {
-    this.images = this.images.slice(-5); // Keep only last 5
-  }
-  return this.images.length;
 };
 
 module.exports = mongoose.model('ImageGallery', gallerySchema);

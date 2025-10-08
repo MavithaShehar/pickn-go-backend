@@ -95,22 +95,37 @@ async function createBooking(vehicleId, customerId, bookingStartDate, bookingEnd
 
   const totalPrice = dayCount * Number(pricePerDay);
 
-  const booking = new Booking({
-    vehicleId,
-    customerId,
-    bookingStartDate: start,
-    bookingEndDate: end,
-    totalPrice,
-    bookingStatus: "pending",
-    startLocation,   
-     endLocation 
-  });
+  // Generate bookingCode
+  const currentDate = new Date();
+  const datePart = today.toISOString().split("T")[0].replace(/-/g, ""); // e.g., 20251008
 
-  await booking.save();
+  // Find how many bookings already created today
+  const countToday = await Booking.countDocuments({
+    createdAt: {
+      $gte: new Date(currentDate.setHours(0, 0, 0, 0)),
+      $lt: new Date(currentDate.setHours(23, 59, 59, 999)),
+  },
+});
 
+const sequenceNumber = String(countToday + 1).padStart(6, "0"); // e.g., 000001
+const bookingCode = `BOOK-${datePart}-${sequenceNumber}`;
+
+const booking = new Booking({
+  bookingCode, 
+  vehicleId,
+  customerId,
+  bookingStartDate: start,
+  bookingEndDate: end,
+  totalPrice,
+  bookingStatus: "pending",
+  startLocation,
+  endLocation,
+});
+
+await booking.save();
   
 
-  // 🔹 Populate vehicleId before returning (fix undefined in emails)
+  // Populate vehicleId before returning (fix undefined in emails)
   return await booking.populate("vehicleId");
 }
 
@@ -199,6 +214,7 @@ async function getCustomerBookings(customerId) {
 
   return bookings.map(b => ({
     _id: b._id,
+    bookingCode: b.bookingCode,
     vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
@@ -220,6 +236,7 @@ async function getOwnerBookings(ownerId) {
 
   return bookings.map(b => ({
     _id: b._id,
+    bookingCode: b.bookingCode,
     vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
@@ -239,6 +256,7 @@ async function getConfirmedBookings() {
 
   return bookings.map(b => ({
     _id: b._id,
+    bookingCode: b.bookingCode,
     vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
@@ -280,6 +298,7 @@ async function getBookingById(userId, bookingId) {
 
   return {
     _id: booking._id,
+    bookingCode: b.bookingCode,
     vehicleId: {
       _id: booking.vehicleId._id,
       title: booking.vehicleId.title,
@@ -314,6 +333,7 @@ async function getOwnerRentalHistory(ownerId) {
 
   return bookings.map(b => ({
     _id: b._id,
+    bookingCode: b.bookingCode,
     vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
@@ -343,6 +363,7 @@ async function getOwnerOngoingBookings(ownerId) {
 
   return bookings.map(b => ({
     _id: b._id,
+    bookingCode: b.bookingCode,
     vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
@@ -370,6 +391,7 @@ async function getOwnerUpcomingBookings(ownerId) {
 
   return bookings.map(b => ({
     _id: b._id,
+    bookingCode: b.bookingCode,
     vehicleId: { 
       _id: b.vehicleId._id, 
       title: b.vehicleId.title, 
@@ -403,6 +425,7 @@ async function getOwnerCompletedBookings(ownerId) {
 
   return bookings.map(b => ({
     _id: b._id,
+    bookingCode: b.bookingCode,
     vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
     customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],

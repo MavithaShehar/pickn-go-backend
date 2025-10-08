@@ -1,51 +1,71 @@
 // services/imageService.js
 const ImageGallery = require('../models/imageGallery.model');
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const MAX_IMAGES = 5;
 
 // ADD one or more images (FIFO: remove oldest if needed)
-const addImages = async (base64Images) => {
-  if (!Array.isArray(base64Images) || base64Images.length === 0) {
+const addImages = async (req) => {
+  if (!req.files || req.files.length === 0) {
     throw new Error('At least one image is required');
   }
 
   const gallery = await ImageGallery.getSingleton();
   
-  // Create new images (MongoDB will automatically generate _id)
-  const newImages = base64Images.map(base64Str => {
-    const mimeTypeMatch = base64Str.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9+.-]+);base64,/);
-    const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg';
-    const data = base64Str.replace(/^data:[a-zA-Z0-9]+\/[a-zA-Z0-9+.-]+;base64,/, '');
-    
-    return {
-      data,
-      mimeType,
-      uploadedAt: new Date()
-    };
-  });
+  // Create new images with file paths
+  const newImages = req.files.map(file => ({
+    filename: file.filename,
+    path: file.path,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    size: file.size,
+    uploadedAt: new Date()
+  }));
+  
+  // Store current count before addition
+  const initialCount = gallery.images.length;
   
   // Add new images and maintain FIFO limit
   gallery.images = [...gallery.images, ...newImages];
   const removedCount = gallery.images.length - MAX_IMAGES;
   
+  let removedImages = [];
   if (removedCount > 0) {
-    gallery.images = gallery.images.slice(-MAX_IMAGES); // Keep last 5
-    console.log(`Removed ${removedCount} oldest image(s) to maintain limit`);
+    // Remove oldest files from disk and store removed image info
+    removedImages = gallery.images.slice(0, removedCount);
+    removedImages.forEach(image => {
+      try {
+        fs.unlinkSync(image.path);
+      } catch (err) {
+        console.error('Error deleting file:', err);
+      }
+    });
+    
+    gallery.images = gallery.images.slice(-MAX_IMAGES);
   }
   
   await gallery.save();
   
-  // Extract the newly added images with their generated _ids
+  // Return only added images and removal info
   const addedImagesWithIds = gallery.images.slice(-newImages.length).map(img => ({
     _id: img._id,
-    mimeType: img.mimeType,
+    filename: img.filename,
+    originalName: img.originalname,
+    mimeType: img.mimetype,
+    size: img.size,
     uploadedAt: img.uploadedAt
   }));
   
   return {
     addedImages: addedImagesWithIds,
+    removedCount: removedImages.length,
+    removedImages: removedImages.map(img => ({
+      _id: img._id,
+      filename: img.filename
+    })),
     totalImages: gallery.images.length,
-    images: gallery.images
+    limitReached: gallery.images.length >= MAX_IMAGES
   };
 };
 
@@ -54,29 +74,19 @@ const getAllImages = async () => {
   const gallery = await ImageGallery.getSingleton();
   return gallery.images;
 };
+// GET image by ObjectId
 
-// GET one image by ObjectId
-const getImageById = async (id) => {
-  // Validate ObjectId format
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error('Invalid image ID format');
-  }
 
-  const gallery = await ImageGallery.getSingleton();
-  const image = gallery.images.id(id);
-  
-  if (!image) {
-    throw new Error('Image not found with this ID');
-  }
-  
-  return image;
-};
+
 
 // UPDATE image by ObjectId
-const updateImageById = async (id, base64Image) => {
-  // Validate ObjectId format
+const updateImageById = async (id, req) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error('Invalid image ID format');
+  }
+
+  if (!req.file) {
+    throw new Error('No image file provided');
   }
 
   const gallery = await ImageGallery.getSingleton();
@@ -86,24 +96,27 @@ const updateImageById = async (id, base64Image) => {
     throw new Error('No image found with this ID');
   }
 
-  // Parse base64 string
-  const mimeTypeMatch = base64Image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9+.-]+);base64,/);
-  const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg';
-  const data = base64Image.replace(/^data:[a-zA-Z0-9]+\/[a-zA-Z0-9+.-]+;base64,/, '');
-  
-  // Update the image properties while preserving the _id
-  image.data = data;
-  image.mimeType = mimeType;
-  image.uploadedAt = new Date(); // Update timestamp
+  // Delete old file
+  try {
+    fs.unlinkSync(image.path);
+  } catch (err) {
+    console.error('Error deleting old file:', err);
+  }
+
+  // Update with new file
+  image.filename = req.file.filename;
+  image.path = req.file.path;
+  image.originalName = req.file.originalname;
+  image.mimeType = req.file.mimetype;
+  image.size = req.file.size;
+  image.uploadedAt = new Date();
   
   await gallery.save();
-  
   return image;
 };
 
 // DELETE image by ObjectId
 const deleteImageById = async (id) => {
-  // Validate ObjectId format
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error('Invalid image ID format');
   }
@@ -115,7 +128,14 @@ const deleteImageById = async (id) => {
     throw new Error('No image found with this ID');
   }
 
-  // Remove the image subdocument
+  // Remove file from disk
+  try {
+    fs.unlinkSync(image.path);
+  } catch (err) {
+    console.error('Error deleting file:', err);
+  }
+
+  // Remove from database
   gallery.images.pull(id);
   await gallery.save();
   
@@ -134,7 +154,6 @@ const getGallery = async () => {
 module.exports = {
   addImages,
   getAllImages,
-  getImageById,
   updateImageById,
   deleteImageById,
   getGallery

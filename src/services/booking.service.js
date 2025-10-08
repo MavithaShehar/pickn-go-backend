@@ -180,6 +180,21 @@ async function deleteBooking(bookingId, customerId) {
   return booking;
 }
 
+// ================================
+// Customer: Get Owner Contact Details
+// ================================
+async function getOwnerContactDetails(ownerId) {
+  const owner = await User.findById(ownerId).select("firstName lastName phoneNumber");
+  if (!owner) throw new Error("Owner not found");
+
+  return {
+    firstName: owner.firstName,
+    lastName: owner.lastName,
+    phoneNumber: owner.phoneNumber,
+  };
+}
+
+
 // Owner manage booking (confirm/cancel only for their vehicle)
 async function manageBookingByOwner(bookingId, ownerId, action) {
   const booking = await Booking.findById(bookingId);
@@ -510,4 +525,5 @@ module.exports = {
   confirmBooking,
   requestHandover,
   acceptHandover,
+  getOwnerContactDetails, // ✅ added
 };

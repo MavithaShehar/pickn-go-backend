@@ -1,7 +1,16 @@
 const multer = require('multer');
+const path = require('path');
 
-// ---------------- Memory storage ----------------
-const storage = multer.memoryStorage();
+// Use disk storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Make sure this folder exists
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
 // ---------------- File filter ----------------
 const fileFilter = (req, file, cb) => {
@@ -31,30 +40,30 @@ const handleUploadErrors = (err, req, res, next) => {
   next();
 };
 
-// ---------------- Convert uploaded files to Base64 ----------------
-const convertFilesToBase64 = (req, res, next) => {
-  try {
-    if (!req.file && !req.files) return next();
+// // ---------------- Convert uploaded files to Base64 ----------------
+// const convertFilesToBase64 = (req, res, next) => {
+//   try {
+//     if (!req.file && !req.files) return next();
 
-    if (req.file) {
-      // Single file
-      req.body.image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-    } else if (req.files?.length) {
-      // Multiple files
-      req.body.images = req.files.map(
-        file => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
-      );
-    }
+//     if (req.file) {
+//       // Single file
+//       req.body.image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+//     } else if (req.files?.length) {
+//       // Multiple files
+//       req.body.images = req.files.map(
+//         file => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
+//       );
+//     }
 
-    next();
-  } catch (error) {
-    res.status(500).json({ message: 'Error converting file to Base64', error: error.message });
-  }
-};
+//     next();
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error converting file to Base64', error: error.message });
+//   }
+// };
 
 // ---------------- Export helpers ----------------
 module.exports = {
-  uploadSingle: (fieldName) => [upload.single(fieldName), convertFilesToBase64],
-  uploadArray: (fieldName, maxCount) => [upload.array(fieldName, maxCount), convertFilesToBase64],
+  uploadSingle: (fieldName) => upload.single(fieldName),
+  uploadArray: (fieldName, maxCount) => upload.array(fieldName, maxCount),
   handleUploadErrors
 };

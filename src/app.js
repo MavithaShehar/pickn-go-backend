@@ -18,6 +18,9 @@ const licenseRoutes = require("./routes/license.routes");
 const reportRoutes = require("./routes/report.routes");
 const vehicleBookingCountRoutes = require("./routes/vehicleBookingCount.routes");
 const damageReportRoutes = require('./routes/damageReport.routes');
+const imageRoutes = require('./routes/imageGallery.routes');
+const contactRoutes = require("./routes/contactUs.routes");
+
 
 const app = express();
 
@@ -33,6 +36,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/vehicle-types", vehicleTypeRoutes);
 app.use("/api/fuel-types", fuelTypeRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/search", searchRoutes);
@@ -43,6 +47,7 @@ app.use("/api/licenses", licenseRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/vehicle-bookings", vehicleBookingCountRoutes);
 app.use("/api/damage-reports", damageReportRoutes);
+app.use('/api', imageRoutes); // now uses /api/gallery
 
 // Not Found Handler
 app.use(notFoundMiddleware);

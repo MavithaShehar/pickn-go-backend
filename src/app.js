@@ -19,6 +19,8 @@ const reportRoutes = require("./routes/report.routes");
 const vehicleBookingCountRoutes = require("./routes/vehicleBookingCount.routes");
 const damageReportRoutes = require('./routes/damageReport.routes');
 const imageRoutes = require('./routes/imageGallery.routes');
+const contactRoutes = require("./routes/contactUs.routes");
+
 
 const app = express();
 
@@ -34,6 +36,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/vehicle-types", vehicleTypeRoutes);
 app.use("/api/fuel-types", fuelTypeRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/search", searchRoutes);

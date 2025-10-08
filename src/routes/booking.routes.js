@@ -16,6 +16,7 @@ const {
   confirmBooking,
   requestHandover,
   acceptHandover,
+   getOwnerContactDetails,  // ✅ Add this line
 
 } = require("../controllers/booking.controller");
 
@@ -50,6 +51,9 @@ router.delete("/:id", authMiddleware, roleMiddleware("customer"), deleteBooking)
 
 // Customer sends handover request
 router.put("/:id/request-handover", authMiddleware,roleMiddleware("customer"), requestHandover);
+
+// Get owner contact details by owner ID
+router.get("/customer/owner/:ownerId",authMiddleware,roleMiddleware("customer"), getOwnerContactDetails);
 
 // =====================
 // Owner Routes

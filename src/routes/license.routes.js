@@ -2,14 +2,17 @@ const express = require("express");
 const router = express.Router();
 const uploadLicense = require("../middlewares/uploadLicenseMemory");
 const authMiddleware = require("../middlewares/authMiddleware");
-const roleMiddleware = require("../middlewares/roleMiddleware"); // for owner/admin role
+const roleMiddleware = require("../middlewares/roleMiddleware");
 const {
   uploadLicenseToMongo,
-  viewLicenseByOwner,
-  verifyLicenseByOwner,
+  updateLicenseCustomer,
+  updateLicenseOwner,
+  viewLicense,
+  deleteLicense,
 } = require("../controllers/license.controller");
 
-// Customer uploads license
+// ================================
+// Upload License (Customer)
 router.post(
   "/upload-license",
   authMiddleware,
@@ -18,20 +21,59 @@ router.post(
   uploadLicenseToMongo
 );
 
-// Owner views license of a customer
+// ================================
+// Update License (Customer)
+router.patch(
+  "/update-license",
+  authMiddleware,
+  roleMiddleware("customer"),
+  uploadLicense,
+  updateLicenseCustomer
+);
+
+// ================================
+// Update License (Owner)
+router.patch(
+  "/:userId/update-license",
+  authMiddleware,
+  roleMiddleware("owner"),
+  updateLicenseOwner
+);
+
+// ================================
+// View License
+// Customer views own license
+router.get(
+  "/view-my-license",
+  authMiddleware,
+  roleMiddleware("customer"),
+  viewLicense
+);
+
+// Owner views a customer's license
 router.get(
   "/:userId/view-license",
   authMiddleware,
   roleMiddleware("owner"),
-  viewLicenseByOwner
+  viewLicense
 );
 
-// Owner verifies license of a customer
-router.patch(
-  "/:userId/verify-license",
+// ================================
+// Delete License
+// Customer deletes own license
+router.delete(
+  "/delete-license",
+  authMiddleware,
+  roleMiddleware("customer"),
+  deleteLicense
+);
+
+// Owner deletes a customer's license
+router.delete(
+  "/:userId/delete-license",
   authMiddleware,
   roleMiddleware("owner"),
-  verifyLicenseByOwner
+  deleteLicense
 );
 
 module.exports = router;

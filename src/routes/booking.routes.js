@@ -33,7 +33,7 @@ const router = express.Router();
 router.post("/", authMiddleware, roleMiddleware("customer"), createBooking);
 
 // Get all bookings for logged-in customer
-router.get("/customer", authMiddleware, roleMiddleware("customer"), getCustomerBookings);
+router.get("/customer", authMiddleware, roleMiddleware("customer", "owner"), getCustomerBookings);
 
 // Get booking status by ID for customer
 router.get("/:id/status", authMiddleware, roleMiddleware("customer"), getBookingStatus);

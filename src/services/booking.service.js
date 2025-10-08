@@ -408,6 +408,8 @@ async function getOwnerCompletedBookings(ownerId) {
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,
+    extraCharge: b.extraCharge,
+    ratePerKm: b.ratePerKm,
     bookingStatus: b.bookingStatus,
     startLocation: b.startLocation,
     endLocation: b.endLocation,
@@ -452,6 +454,10 @@ async function acceptHandover(bookingId, ownerId, { endOdometer, ratePerKm }) {
   booking.endOdometer = endOdometer;
   booking.totalMileageUsed = endOdometer - booking.startOdometer;
   booking.extraMileage = Math.max(0, booking.totalMileageUsed - booking.agreedMileage);
+  
+  
+// Store both rate and charge
+  booking.ratePerKm = ratePerKm;
   booking.extraCharge = booking.extraMileage * ratePerKm;
 
   booking.bookingStatus = "completed";

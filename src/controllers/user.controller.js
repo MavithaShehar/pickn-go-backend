@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const User = require("../models/user.model");
 const generateToken = require("../utils/generateToken");
+const generateUniqueCode = require("../utils/generateUniqueCode");
 const sendEmail = require("../utils/sendEmail");
 
 // ---------------- Register ----------------
@@ -57,6 +58,8 @@ const registerUser = async (req, res, next) => {
     if (!gender || !["male", "female"].includes(gender.toLowerCase())) {
       return res.status(400).json({ message: "Gender must be either 'male' or 'female'" });
     }
+     // ✅ Generate unique code for new user
+    const uniqueCode = await generateUniqueCode(role);
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -85,6 +88,7 @@ const registerUser = async (req, res, next) => {
       password: hashedPassword,
       role,
       gender: gender.toLowerCase(),
+       uniqueCode,
       addressLine1: line1,
       addressLine2: (addressLine2 ?? "").trim(),
       postalCode: (postalCode ?? "").trim(),
@@ -131,6 +135,7 @@ const loginUser = async (req, res, next) => {
       email: user.email,
       role: user.role,
       profilePhoto: user.profilePhoto || null,
+      uniqueCode: user.uniqueCode, // 👈 return unique code on login too (optional)
       token: generateToken(user._id, user.role || "customer"),
     });
   } catch (err) {
@@ -179,6 +184,7 @@ const getProfile = async (req, res, next) => {
     res.json({
       ...user.toObject(),
       profilePhoto: user.profilePhoto || null,
+      uniqueCode: user.uniqueCode, // 👈 include unique code in profile
     });
   } catch (err) {
     next(err);

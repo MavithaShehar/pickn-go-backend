@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     phoneNumber: { type: String, required: true, unique: true, trim: true },
 
     password: { type: String, required: true },
+    
 
     // Role (defaults to "customer")
     role: {
@@ -25,7 +26,7 @@ const userSchema = new mongoose.Schema(
       enum: ["male", "female"],
       required: true,   // make it required if needed
     },
-
+   uniqueCode: { type: String, unique: true }, // ✅ auto generated
     // Address fields
     addressLine1: { type: String, required: true, trim: true }, // required
     addressLine2: { type: String, trim: true },                 // optional

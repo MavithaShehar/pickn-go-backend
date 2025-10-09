@@ -55,7 +55,7 @@ class NotificationController {
 
 
     // ✅ Mark notification as read
-    async markAsRead(req, res) {
+    /*async markAsRead(req, res) {
         try {
             const { id } = req.params;
             const updatedNotification = await notificationService.markAsRead(id, req.user._id);
@@ -78,7 +78,7 @@ class NotificationController {
         } catch (error) {
             res.status(500).json({ success: false, message: error.message });
         }
-    }
+    }*/
 }
 
 module.exports = new NotificationController();

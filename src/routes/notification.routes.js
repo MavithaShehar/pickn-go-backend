@@ -11,9 +11,9 @@ router.post("/",authMiddleware, roleMiddleware("admin"), notificationController.
 router.get("/",authMiddleware, notificationController.getNotifications);
 
 // Mark as read
-router.put("/:id/read",authMiddleware, roleMiddleware("admin"), notificationController.markAsRead);
+//router.put("/:id/read",authMiddleware, roleMiddleware("admin"), notificationController.markAsRead);
 
 // Deactivate a notification (Admin only)
-router.put("/:id/deactivate",authMiddleware, roleMiddleware("admin"), notificationController.deactivate);
+//router.put("/:id/deactivate",authMiddleware, roleMiddleware("admin"), notificationController.deactivate);
 
 module.exports = router;

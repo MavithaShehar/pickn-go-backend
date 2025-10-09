@@ -59,7 +59,7 @@ class NotificationService {
 
 
     // Mark a notification as read by a specific user
-    async markAsRead(notificationId, userId) {
+    /*async markAsRead(notificationId, userId) {
         return await Notification.findByIdAndUpdate(
             notificationId,
             { $addToSet: { readBy: userId } },
@@ -74,7 +74,7 @@ class NotificationService {
             { isActive: false },
             { new: true }
         );
-    }
+    }*/
 }
 
 module.exports = new NotificationService();

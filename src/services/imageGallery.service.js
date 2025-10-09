@@ -150,11 +150,23 @@ const deleteImageById = async (id) => {
 const getGallery = async () => {
   return await ImageGallery.getSingleton();
 };
+const getImageById = async (id) => {
+  const gallery = await ImageGallery.getSingleton();
+  const image = gallery.images.id(id);
+
+  if (!image) throw new Error('No image found with this ID');
+  return image;
+};
+
 
 module.exports = {
   addImages,
   getAllImages,
   updateImageById,
   deleteImageById,
-  getGallery
+  getGallery,
+  getImageById
+  
 };
+
+

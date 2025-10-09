@@ -2,36 +2,86 @@ const express = require("express");
 const router = express.Router();
 const uploadLicense = require("../middlewares/uploadLicenseMemory");
 const authMiddleware = require("../middlewares/authMiddleware");
-const roleMiddleware = require("../middlewares/roleMiddleware"); // for owner/admin role
+const roleMiddleware = require("../middlewares/roleMiddleware");
 const {
   uploadLicenseToMongo,
-  viewLicenseByOwner,
-  verifyLicenseByOwner,
+  updateLicenseCustomer,
+  updateLicenseOwner,
+  viewLicense,
+  deleteLicense,
+   viewAllLicenses,  
 } = require("../controllers/license.controller");
 
-// Customer uploads license
+// ================================
+// Upload License (Customer,owner)
 router.post(
   "/upload-license",
   authMiddleware,
-  roleMiddleware("customer"),
+  roleMiddleware("customer","owner"),
   uploadLicense,
   uploadLicenseToMongo
 );
 
-// Owner views license of a customer
+// ================================
+// Update License (Customer,owner)
+router.patch(
+  "/update-license",
+  authMiddleware,
+  roleMiddleware("customer","owner"),
+  uploadLicense,
+  updateLicenseCustomer
+);
+
+// ================================
+// admin verfy License 
+router.patch(
+  "/:userId/update-license",
+  authMiddleware,
+  roleMiddleware("admin"),
+  updateLicenseOwner
+);
+
+// ================================
+// View License
+// Customer and owner views own license
+router.get(
+  "/view-my-license",
+  authMiddleware,
+  roleMiddleware("customer","owner"),
+  viewLicense
+);
+
+// admin views a customer's license
 router.get(
   "/:userId/view-license",
   authMiddleware,
-  roleMiddleware("owner"),
-  viewLicenseByOwner
+  roleMiddleware("admin"),
+  viewLicense
 );
 
-// Owner verifies license of a customer
-router.patch(
-  "/:userId/verify-license",
+// ================================
+// Delete License
+// Customer ,owner deletes own license
+router.delete(
+  "/delete-license",
   authMiddleware,
-  roleMiddleware("owner"),
-  verifyLicenseByOwner
+  roleMiddleware("customer","owner"),
+  deleteLicense
+);
+
+// admin deletes a customer's license
+router.delete(
+  "/:userId/delete-license",
+  authMiddleware,
+  roleMiddleware("admin"),
+  deleteLicense
+);
+// Admin - View All Licenses
+router.get(
+  "/admin/view-all-licenses",
+  authMiddleware,
+  roleMiddleware("admin"),
+  viewAllLicenses
 );
 
 module.exports = router;

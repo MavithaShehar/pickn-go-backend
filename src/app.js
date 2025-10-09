@@ -20,7 +20,7 @@ const vehicleBookingCountRoutes = require("./routes/vehicleBookingCount.routes")
 const damageReportRoutes = require('./routes/damageReport.routes');
 const imageRoutes = require('./routes/imageGallery.routes');
 const contactRoutes = require("./routes/contactUs.routes");
-
+const notificationRoutes = require("./routes/notification.routes");
 
 const app = express();
 
@@ -48,6 +48,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/vehicle-bookings", vehicleBookingCountRoutes);
 app.use("/api/damage-reports", damageReportRoutes);
 app.use('/api', imageRoutes); // now uses /api/gallery
+app.use('/api/notification', notificationRoutes);
 
 // Not Found Handler
 app.use(notFoundMiddleware);

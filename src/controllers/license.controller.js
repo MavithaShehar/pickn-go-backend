@@ -1,7 +1,7 @@
 const RentDocument = require("../models/rentDocument.model");
 
 // ================================
-// Upload License (Customer)
+// Upload License (Customer, Owner)
 // ================================
 exports.uploadLicenseToMongo = async (req, res) => {
   try {
@@ -44,7 +44,7 @@ exports.uploadLicenseToMongo = async (req, res) => {
 };
 
 // ================================
-// Update License (Customer)
+// Update License (Customer, Owner)
 // ================================
 exports.updateLicenseCustomer = async (req, res) => {
   try {
@@ -66,15 +66,14 @@ exports.updateLicenseCustomer = async (req, res) => {
         frontType: front.mimetype,
         back: back.buffer,
         backType: back.mimetype,
-        status: "pending", // reset status when customer updates
+        status: "pending", // reset status when updating
       },
       documentVerifiedStatus: false,
       verifiedBy: null,
       verifiedAt: null,
     };
-    const options = { new: true };
 
-    const document = await RentDocument.findOneAndUpdate(filter, update, options);
+    const document = await RentDocument.findOneAndUpdate(filter, update, { new: true });
 
     if (!document) return res.status(404).json({ message: "License not found" });
 
@@ -83,18 +82,18 @@ exports.updateLicenseCustomer = async (req, res) => {
       documentId: document._id,
     });
   } catch (err) {
-    console.error("Update License Error (Customer):", err);
+    console.error("Update License Error (Customer/Owner):", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 // ================================
-// Update License (Owner)
+// Verify / Update License (Admin)
 // ================================
 exports.updateLicenseOwner = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { expireDate, status } = req.body; // owner can update expiry and/or status
+    const { expireDate, status } = req.body; // admin can update expiry and status
 
     const filter = { userId, documentType: "license" };
     const update = {};
@@ -107,27 +106,25 @@ exports.updateLicenseOwner = async (req, res) => {
       update.verifiedAt = new Date();
     }
 
-    const options = { new: true };
-
-    const document = await RentDocument.findOneAndUpdate(filter, update, options);
+    const document = await RentDocument.findOneAndUpdate(filter, update, { new: true });
 
     if (!document) return res.status(404).json({ message: "License not found" });
 
     res.status(200).json({
-      message: "License updated successfully by owner",
+      message: "License verified/updated successfully by admin",
       documentId: document._id,
       expireDate: document.expireDate,
       status: document.documents?.status,
-      documentVerifiedStatus: document.documentVerifiedStatus,
+      verified: document.documentVerifiedStatus,
     });
   } catch (err) {
-    console.error("Update License Error (Owner):", err);
+    console.error("Update License Error (Admin):", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 // ================================
-// View License (Owner or Customer)
+// View License (Customer, Owner, Admin)
 // ================================
 exports.viewLicense = async (req, res) => {
   try {
@@ -136,12 +133,14 @@ exports.viewLicense = async (req, res) => {
 
     let document;
 
-    if (req.user.role === "owner") {
+    if (req.user.role === "admin") {
       if (!userId) return res.status(400).json({ message: "Customer userId is required" });
       document = await RentDocument.findOne({ userId, documentType: "license" });
-    } else if (req.user.role === "customer") {
+    } 
+    else if (req.user.role === "customer" || req.user.role === "owner") {
       document = await RentDocument.findOne({ userId: requesterId, documentType: "license" });
-    } else {
+    } 
+    else {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -172,7 +171,7 @@ exports.viewLicense = async (req, res) => {
 };
 
 // ================================
-// Delete License (Owner or Customer)
+// Delete License (Customer, Owner, Admin)
 // ================================
 exports.deleteLicense = async (req, res) => {
   try {
@@ -181,12 +180,14 @@ exports.deleteLicense = async (req, res) => {
 
     let filter;
 
-    if (req.user.role === "owner") {
+    if (req.user.role === "admin") {
       if (!userId) return res.status(400).json({ message: "Customer userId is required" });
       filter = { userId, documentType: "license" };
-    } else if (req.user.role === "customer") {
+    } 
+    else if (req.user.role === "customer" || req.user.role === "owner") {
       filter = { userId: requesterId, documentType: "license" };
-    } else {
+    } 
+    else {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -200,3 +201,46 @@ exports.deleteLicense = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ================================
+// View All Licenses (Admin)
+// ================================
+exports.viewAllLicenses = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const documents = await RentDocument.find({ documentType: "license" })
+      .populate("userId", "fullName email role") // optional: populate user info
+      .sort({ createdAt: -1 });
+
+    if (!documents || documents.length === 0) {
+      return res.status(404).json({ message: "No license documents found" });
+    }
+
+    const formattedDocs = documents.map((doc) => ({
+      documentId: doc._id,
+      userId: doc.userId?._id,
+      userName: doc.userId?.fullName || "N/A",
+      email: doc.userId?.email || "N/A",
+      role: doc.userId?.role || "N/A",
+      expireDate: doc.expireDate,
+      status: doc.documents?.status || "pending",
+      verified: doc.documentVerifiedStatus,
+      verifiedBy: doc.verifiedBy,
+      verifiedAt: doc.verifiedAt,
+      createdAt: doc.createdAt,
+    }));
+
+    res.status(200).json({
+      message: "All license documents retrieved successfully",
+      count: formattedDocs.length,
+      licenses: formattedDocs,
+    });
+  } catch (err) {
+    console.error("View All Licenses Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

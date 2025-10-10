@@ -10,8 +10,7 @@ const ensureVerifiedOwner = (req, res) => {
   }
   return true;
 };
-
-// Add new vehicle (Base64 images expected in req.body.images)
+// Add new vehicle (Supports both Base64 and file upload)
 exports.addVehicle = async (req, res) => {
   try {
     if (req.user.role === "customer") {
@@ -21,13 +20,24 @@ exports.addVehicle = async (req, res) => {
 
     if (!ensureVerifiedOwner(req, res)) return;
 
-    if (!req.body.images || req.body.images.length === 0) {
+    // ✅ Check for both Base64 and file upload
+    if ((!req.body.images || req.body.images.length === 0) && (!req.files || req.files.length === 0)) {
       return res
         .status(400)
-        .json({ message: "At least one vehicle image is required (Base64)" });
+        .json({ message: "At least one vehicle image is required" });
     }
 
-    const images = req.body.images; // already Base64 strings
+    let images = [];
+
+    // ✅ If files are uploaded (form-data)
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(file => file.path || file.filename);
+    } 
+    // ✅ If Base64 images are sent in body
+    else if (req.body.images && req.body.images.length > 0) {
+      images = req.body.images;
+    }
+
     const vehicleData = { ...req.body, images };
 
     const vehicle = await vehicleService.createVehicle(req.user.id, vehicleData);

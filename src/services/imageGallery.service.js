@@ -74,10 +74,6 @@ const getAllImages = async () => {
   const gallery = await ImageGallery.getSingleton();
   return gallery.images;
 };
-// GET image by ObjectId
-
-
-
 
 // UPDATE image by ObjectId
 const updateImageById = async (id, req) => {
@@ -150,6 +146,7 @@ const deleteImageById = async (id) => {
 const getGallery = async () => {
   return await ImageGallery.getSingleton();
 };
+// GET image by ObjectId
 const getImageById = async (id) => {
   const gallery = await ImageGallery.getSingleton();
   const image = gallery.images.id(id);

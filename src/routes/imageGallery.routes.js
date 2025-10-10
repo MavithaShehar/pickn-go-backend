@@ -5,7 +5,8 @@ const {
   addImages,
   getAllImages,
   updateImageById,
-  deleteImageById
+  deleteImageById,
+  getImageById
 } = require('../controllers/imageGallery.controller');
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
@@ -35,6 +36,9 @@ router.put(
   handleUploadErrors,
   updateImageById
 );
+
+// ✅ GET /api/images/:id — Get single image by ID
+router.get('/images/:id', getImageById);
 
 // DELETE /api/images/:id — Delete specific image by ObjectId
 router.delete('/images/:id',

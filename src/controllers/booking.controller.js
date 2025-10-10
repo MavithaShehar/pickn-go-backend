@@ -94,7 +94,35 @@ exports.requestHandover = async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
+};// ================================
+// Customer: Get Owner Contact Details (Secure)
+// ================================
+exports.getOwnerContactDetails = async (req, res) => {
+  try {
+    const ownerId = req.params.ownerId;
+
+    // ✅ Fetch the user (owner)
+    const owner = await User.findById(ownerId).select("firstName lastName phoneNumber role");
+    if (!owner) {
+      return res.status(404).json({ message: "Owner not found" });
+    }
+
+    // 🚫 Block if the user is an Admin
+    if (owner.role === "admin") {
+      return res.status(403).json({ message: "Access denied: Admin details cannot be retrieved" });
+    }
+
+    // ✅ Return only if it's an owner
+    res.json({
+      firstName: owner.firstName,
+      lastName: owner.lastName,
+      phoneNumber: owner.phoneNumber,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
+
 
 // ================================
 // Owner Controllers

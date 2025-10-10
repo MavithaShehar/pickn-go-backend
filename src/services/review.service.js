@@ -7,13 +7,31 @@ async function createReview(userId, bookingId, vehicleId, rating, comment) {
   const booking = await Booking.findOne({ _id: bookingId, customerId: userId });
   if (!booking) throw new Error("You are not allowed to review this booking");
 
+  // --- Generate Review ID ---
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, ""); // e.g., 20251008
+
+  // Count how many reviews were created today
+  const count = await Review.countDocuments({
+    createdAt: {
+      $gte: new Date(today.setHours(0, 0, 0, 0)),
+      $lt: new Date(today.setHours(23, 59, 59, 999)),
+    },
+  });
+
+  const sequence = String(count + 1).padStart(6, "0"); // 6 digits with leading zeros
+  const reviewId = `REVIEW-${dateStr}-${sequence}`;
+
+  // --- Create new Review ---
   const review = new Review({
+    reviewId,
     bookingId,
     vehicleId,
     userId,
     rating,
     comment,
   });
+
   return await review.save();
 }
 

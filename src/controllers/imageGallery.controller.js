@@ -1,4 +1,4 @@
-// controllers/imageController.js
+// controllers/imageGallery.controller.js
 const imageService = require('../services/imageGallery.service');
 
 // POST /api/images → add image(s) - ONLY returns added images info
@@ -14,7 +14,6 @@ const addImages = async (req, res) => {
       limitReached: result.limitReached
     };
     
-    // Only include removal info if images were actually removed
     if (result.removedCount > 0) {
       response.removedCount = result.removedCount;
       response.removedImages = result.removedImages;
@@ -27,7 +26,7 @@ const addImages = async (req, res) => {
   }
 };
 
-// GET /api/images → view all images (separate endpoint)
+// GET /api/images → view all images
 const getAllImages = async (req, res) => {
   try {
     const images = await imageService.getAllImages();
@@ -48,9 +47,6 @@ const getAllImages = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-
-
 
 // PUT /api/images/:id → edit specific image
 const updateImageById = async (req, res) => {
@@ -89,9 +85,30 @@ const deleteImageById = async (req, res) => {
   }
 };
 
+// GET /api/images/:id → Get single image metadata + file URL
+const getImageById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const image = await imageService.getImageById(id);
+
+    res.json({
+      _id: image._id,
+      filename: image.filename,
+      originalName: image.originalname,
+      mimeType: image.mimetype,
+      size: image.size,
+      uploadedAt: image.uploadedAt,
+      url: `/api/images/${image._id}/file`
+    });
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+};
+
 module.exports = {
   addImages,
   getAllImages,
   updateImageById,
-  deleteImageById
+  deleteImageById,
+  getImageById  
 };

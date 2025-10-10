@@ -1,6 +1,9 @@
 const Vehicle = require("../models/vehicle.model");
 const User = require("../models/user.model");
 const sendEmail = require("../utils/sendEmail");
+const generateVehicleCode = require("../utils/generateVehicleCode");
+
+
 
 // Ensures that only verified owners can perform restricted actions
 async function ensureVerifiedOwner(ownerId) {
@@ -10,13 +13,20 @@ async function ensureVerifiedOwner(ownerId) {
   }
   return owner;
 }
-
-// Create a new vehicle (only verified owners)
+//create vehicle
 async function createVehicle(ownerId, vehicleData) {
   try {
     await ensureVerifiedOwner(ownerId);
 
-    const vehicle = new Vehicle({ ...vehicleData, ownerId });
+    // ✅ Generate unique vehicle code
+    const vehicleCode = await generateVehicleCode();
+
+    const vehicle = new Vehicle({
+      ...vehicleData,
+      ownerId,
+      vehicleCode, // ✅ add code
+    });
+
     await vehicle.save();
     return { success: true, message: "Vehicle created successfully", data: vehicle };
   } catch (error) {

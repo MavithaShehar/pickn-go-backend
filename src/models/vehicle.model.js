@@ -11,6 +11,7 @@ const vehicleSchema = new mongoose.Schema({
   status: { type: String, enum: ["available", "unavailable"], default: "available" },
    verificationStatus: { type: Boolean, default: false },
   vehicleTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "VehicleType" },
+  vehicleCode: { type: String, unique: true },
   fuelTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "FuelType" },
   city: { type: String, required: true },
   district: { type: String, required: true },

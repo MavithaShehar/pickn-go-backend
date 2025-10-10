@@ -8,7 +8,20 @@ exports.createVehicleType = async (req, res) => {
     if (exists)
       return res.status(400).json({ message: "Vehicle Type already exists" });
 
-    const vehicleType = await VehicleType.create({ name });
+    // Generate unique vehicle type ID
+    const lastVehicleType = await VehicleType.findOne({}, {}, { sort: { 'vehicleTypeID': -1 } });
+    
+    let nextNumber = 1;
+    if (lastVehicleType && lastVehicleType.vehicleTypeID) {
+      // Extract the number from the last ID (e.g., "VT-0001" -> 1)
+      const lastNumber = parseInt(lastVehicleType.vehicleTypeID.split('-')[1]);
+      nextNumber = lastNumber + 1;
+    }
+    
+    // Format the ID as "VT-XXXX" with leading zeros
+    const vehicleTypeID = `VT-${nextNumber.toString().padStart(4, '0')}`;
+
+    const vehicleType = await VehicleType.create({ name, vehicleTypeID });
     res.status(201).json(vehicleType);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -1,5 +1,7 @@
 // controllers/imageGallery.controller.js
 const imageService = require('../services/imageGallery.service');
+const fs = require('fs');
+const path = require('path');
 
 // POST /api/images → add image(s) - ONLY returns added images info
 const addImages = async (req, res) => {
@@ -34,8 +36,8 @@ const getAllImages = async (req, res) => {
       images: images.map(img => ({ 
         _id: img._id,
         filename: img.filename,
-        originalName: img.originalname,
-        mimeType: img.mimetype,
+        originalName: img.originalName,
+        mimeType: img.mimeType,
         size: img.size,
         uploadedAt: img.uploadedAt,
         url: `/api/images/${img._id}/file`
@@ -58,8 +60,8 @@ const updateImageById = async (req, res) => {
       image: {
         _id: updated._id,
         filename: updated.filename,
-        originalName: updated.originalname,
-        mimeType: updated.mimetype,
+        originalName: updated.originalName,
+        mimeType: updated.mimeType,
         size: updated.size,
         uploadedAt: updated.uploadedAt,
         url: `/api/images/${updated._id}/file`
@@ -94,12 +96,33 @@ const getImageById = async (req, res) => {
     res.json({
       _id: image._id,
       filename: image.filename,
-      originalName: image.originalname,
-      mimeType: image.mimetype,
+      originalName: image.originalName,
+      mimeType: image.mimeType,
       size: image.size,
       uploadedAt: image.uploadedAt,
       url: `/api/images/${image._id}/file`
     });
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+};
+
+// GET /api/images/:id/file → Serve the actual image file
+const serveImageFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const image = await imageService.getImageById(id);
+    
+    // Check if file exists
+    if (!fs.existsSync(image.path)) {
+      return res.status(404).json({ message: 'Image file not found on disk' });
+    }
+    
+    // Set appropriate content type
+    res.setHeader('Content-Type', image.mimeType);
+    
+    // Serve the file
+    res.sendFile(path.resolve(image.path));
   } catch (error) {
     res.status(404).json({ message: error.message });
   }
@@ -110,5 +133,6 @@ module.exports = {
   getAllImages,
   updateImageById,
   deleteImageById,
-  getImageById  
+  getImageById,
+  serveImageFile
 };

@@ -51,8 +51,8 @@ const addImages = async (req) => {
   const addedImagesWithIds = gallery.images.slice(-newImages.length).map(img => ({
     _id: img._id,
     filename: img.filename,
-    originalName: img.originalname,
-    mimeType: img.mimetype,
+    originalName: img.originalName,
+    mimeType: img.mimeType,
     size: img.size,
     uploadedAt: img.uploadedAt
   }));
@@ -146,6 +146,7 @@ const deleteImageById = async (id) => {
 const getGallery = async () => {
   return await ImageGallery.getSingleton();
 };
+
 // GET image by ObjectId
 const getImageById = async (id) => {
   const gallery = await ImageGallery.getSingleton();
@@ -155,7 +156,6 @@ const getImageById = async (id) => {
   return image;
 };
 
-
 module.exports = {
   addImages,
   getAllImages,
@@ -163,7 +163,4 @@ module.exports = {
   deleteImageById,
   getGallery,
   getImageById
-  
 };
-
-

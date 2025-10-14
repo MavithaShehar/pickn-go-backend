@@ -40,7 +40,7 @@ build/
 *.sublime-project
 
 # ignore all uploaded files
-uploads/
+
 
 
 # OS specific

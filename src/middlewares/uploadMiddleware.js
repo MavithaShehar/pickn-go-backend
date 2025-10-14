@@ -1,5 +1,12 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Use disk storage
 const storage = multer.diskStorage({
@@ -39,27 +46,6 @@ const handleUploadErrors = (err, req, res, next) => {
   }
   next();
 };
-
-// // ---------------- Convert uploaded files to Base64 ----------------
-// const convertFilesToBase64 = (req, res, next) => {
-//   try {
-//     if (!req.file && !req.files) return next();
-
-//     if (req.file) {
-//       // Single file
-//       req.body.image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-//     } else if (req.files?.length) {
-//       // Multiple files
-//       req.body.images = req.files.map(
-//         file => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
-//       );
-//     }
-
-//     next();
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error converting file to Base64', error: error.message });
-//   }
-// };
 
 // ---------------- Export helpers ----------------
 module.exports = {

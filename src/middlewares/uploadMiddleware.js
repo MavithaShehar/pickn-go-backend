@@ -1,32 +1,39 @@
+// middlewares/uploadMiddleware.js
 const multer = require('multer');
 const path = require('path');
 
-// Use disk storage
+// Ensure uploads folder exists
+const fs = require('fs');
+const uploadDir = 'uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Make sure this folder exists
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
-// ---------------- File filter ----------------
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-  if (allowedTypes.includes(file.mimetype)) cb(null, true);
-  else cb(new Error('Only jpg/jpeg/png images are allowed!'), false);
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only jpg/jpeg/png images are allowed!'), false);
+  }
 };
 
-// ---------------- Multer instance ----------------
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
-// ---------------- Handle upload errors ----------------
 const handleUploadErrors = (err, req, res, next) => {
   if (err) {
     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -40,28 +47,6 @@ const handleUploadErrors = (err, req, res, next) => {
   next();
 };
 
-// // ---------------- Convert uploaded files to Base64 ----------------
-// const convertFilesToBase64 = (req, res, next) => {
-//   try {
-//     if (!req.file && !req.files) return next();
-
-//     if (req.file) {
-//       // Single file
-//       req.body.image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-//     } else if (req.files?.length) {
-//       // Multiple files
-//       req.body.images = req.files.map(
-//         file => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
-//       );
-//     }
-
-//     next();
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error converting file to Base64', error: error.message });
-//   }
-// };
-
-// ---------------- Export helpers ----------------
 module.exports = {
   uploadSingle: (fieldName) => upload.single(fieldName),
   uploadArray: (fieldName, maxCount) => upload.array(fieldName, maxCount),

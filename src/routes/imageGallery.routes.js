@@ -1,33 +1,29 @@
-// routes/imageRoutes.js
+// routes/imageGallery.routes.js
 const express = require('express');
 const router = express.Router();
 const {
   addImages,
   getAllImages,
+  getImageById,
   updateImageById,
   deleteImageById,
-  getImageById
+  serveImageFile
 } = require('../controllers/imageGallery.controller');
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
-
 const { uploadSingle, uploadArray, handleUploadErrors } = require('../middlewares/uploadMiddleware');
 
-// POST /api/images — Add one or more images (auto-trim to 5)
+// Upload images (admin only)
 router.post(
   '/images',
   authMiddleware,
-  roleMiddleware("admin"), // Only admin can add images
+  roleMiddleware("admin"),
   uploadArray('images', 10),
   handleUploadErrors,
   addImages
 );
 
-// GET /api/images — View all images metadata (0 to 5)
-router.get('/images', getAllImages);
-
-
-// PUT /api/images/:id — Edit specific image by ObjectId
+// Update image (admin only)
 router.put(
   '/images/:id',
   authMiddleware,
@@ -37,13 +33,12 @@ router.put(
   updateImageById
 );
 
-// ✅ GET /api/images/:id — Get single image by ID
+// Public routes
+router.get('/images', getAllImages);
 router.get('/images/:id', getImageById);
+router.get('/images/:id/file', serveImageFile);
 
-// DELETE /api/images/:id — Delete specific image by ObjectId
-router.delete('/images/:id',
-  authMiddleware,
-  roleMiddleware("admin"),
-  deleteImageById);
+// Delete (admin only)
+router.delete('/images/:id', authMiddleware, roleMiddleware("admin"), deleteImageById);
 
 module.exports = router;

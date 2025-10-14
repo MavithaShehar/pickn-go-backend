@@ -3,13 +3,13 @@ const Contact = require("../models/contactUs.model");
 // Public: Create new contact message (no auth)
 exports.createMessage = async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    const { firstName, lastName, email, message } = req.body;
 
-    if (!name || !email || !message) {
+    if (!firstName || !lastName || !email || !message) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    await Contact.create({ name, email, message });
+    await Contact.create({ firstName, lastName, email, message });
     res.status(201).json({ message: "Message sent successfully" });
   } catch (err) {
     console.error(err);

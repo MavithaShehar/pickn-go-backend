@@ -115,7 +115,9 @@ const serveImageFile = async (req, res) => {
     
     // Check if file exists
     if (!fs.existsSync(image.path)) {
-      return res.status(404).json({ message: 'Image file not found on disk' });
+      // If file doesn't exist, remove it from the database
+      await imageService.deleteImageById(id);
+      return res.status(404).json({ message: 'Image file not found on disk and has been removed from database' });
     }
     
     // Set appropriate content type

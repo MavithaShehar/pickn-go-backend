@@ -27,9 +27,12 @@ const userSchema = new mongoose.Schema(
       required: true,   // make it required if needed
     },
    uniqueCode: { type: String, unique: true }, // ✅ auto generated
-    // Address fields
+    
+   // Address fields
     addressLine1: { type: String, required: true, trim: true }, // required
-    addressLine2: { type: String, trim: true },                 // optional
+    addressLine2: { type: String, trim: true },  
+    city: { type: String, required: true, trim: true },       // ✅ new
+    district: { type: String, required: true, trim: true },               // optional
     postalCode: { type: String, trim: true },                   // optional
 
     verificationStatus: { type: Boolean, default: false },

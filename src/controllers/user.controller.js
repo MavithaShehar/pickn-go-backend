@@ -19,6 +19,8 @@ const registerUser = async (req, res, next) => {
       addressLine1,
       addressLine2,
       postalCode,
+      city,
+      district,
       address,
       avatar, // from body or multer convert
       gender, 
@@ -47,6 +49,12 @@ const registerUser = async (req, res, next) => {
     const line1 = (addressLine1 ?? address ?? "").trim();
     if (!line1) {
       return res.status(400).json({ message: "addressLine1 is required" });
+    }
+
+    // Validate city and district
+    const cityTrim = (city || "").trim();
+    if (!cityTrim) {
+      return res.status(400).json({ message: "City is required" });
     }
 
     // Validate password match
@@ -91,6 +99,8 @@ const registerUser = async (req, res, next) => {
        uniqueCode,
       addressLine1: line1,
       addressLine2: (addressLine2 ?? "").trim(),
+      city: (city ?? "").trim(),
+      district: (district ?? "").trim(),
       postalCode: (postalCode ?? "").trim(),
       verificationStatus: false,
       status: "active",
@@ -194,7 +204,7 @@ const getProfile = async (req, res, next) => {
 // ---------------- Edit Own Profile ----------------
 const editProfile = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phoneNumber, addressLine1, addressLine2, postalCode } = req.body;
+    const { firstName, lastName, email, phoneNumber, addressLine1, addressLine2, city, district, postalCode } = req.body;
     const userId = req.user._id;
 
     const currentUser = await User.findById(userId);
@@ -218,6 +228,8 @@ const editProfile = async (req, res, next) => {
     if (phoneNumber !== undefined) updateFields.phoneNumber = phoneNumber.trim();
     if (addressLine1 !== undefined) updateFields.addressLine1 = addressLine1.trim();
     if (addressLine2 !== undefined) updateFields.addressLine2 = addressLine2.trim();
+    if (city !== undefined) updateFields.city = city.trim();
+    if (district !== undefined) updateFields.district = district.trim();
     if (postalCode !== undefined) updateFields.postalCode = postalCode.trim();
 
     const updatedUser = await User.findByIdAndUpdate(

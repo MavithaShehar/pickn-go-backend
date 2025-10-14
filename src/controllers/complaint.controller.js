@@ -1,3 +1,4 @@
+// controllers/complaint.controller.js
 const ComplaintService = require('../services/complaint.service');
 const Complaint = require('../models/complaint.model');
 
@@ -5,13 +6,14 @@ const VALID_STATUSES = ['pending', 'processing', 'rejected', 'resolved'];
 
 class ComplaintController {
 
-  // Create a new complaint
+  // ⭐ CHANGED: Create a new complaint with Base64 images
   static async createComplaint(req, res) {
     try {
       const complaintData = {
         ...req.body,
         user: req.user._id,
-        images: req.files ? req.files.map(file => file.path) : []
+        // ⭐ CHANGED: Get images from req.body instead of req.files
+        images: req.body.images || []
       };
 
       const complaint = await ComplaintService.createComplaint(complaintData);
@@ -20,16 +22,17 @@ class ComplaintController {
       res.status(400).json({ error: error.message });
     }
   }
+
   // Get all complaints created by the current user (customer)
-static async getMyComplaints(req, res) {
-  try {
-    const userId = req.user._id;
-    const complaints = await ComplaintService.getComplaintsByUser(userId);
-    res.json(complaints);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  static async getMyComplaints(req, res) {
+    try {
+      const userId = req.user._id;
+      const complaints = await ComplaintService.getComplaintsByUser(userId);
+      res.json(complaints);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   }
-}
 
   // Get all complaints
   static async getAllComplaints(req, res) {
@@ -45,24 +48,26 @@ static async getMyComplaints(req, res) {
   static async getComplaintById(req, res) {
     try {
       const { id } = req.params;
-      const complaint = await ComplaintService.getComplaintById(id); 
-      
-     
-
+      const complaint = await ComplaintService.getComplaintById(id);
       res.json(complaint);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      if (error.message.includes('not found')) {
+        res.status(404).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
     }
   }
 
-  // Edit complaint
+  // ⭐ CHANGED: Edit complaint with Base64 images
   static async editComplaint(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user._id;
 
-      if (req.files && req.files.length > 0) {
-        const validation = ComplaintService.validateImages(req.files);
+      // ⭐ CHANGED: Validate Base64 images from req.body
+      if (req.body.images && req.body.images.length > 0) {
+        const validation = ComplaintService.validateImages(req.body.images);
         if (!validation.valid) {
           return res.status(400).json({ error: validation.message });
         }
@@ -71,7 +76,8 @@ static async getMyComplaints(req, res) {
       const updateData = {
         title: req.body.title,
         description: req.body.description,
-        images: req.files && req.files.length > 0 ? req.files.map(file => file.path) : undefined
+        // ⭐ CHANGED: Get images from req.body
+        images: req.body.images && req.body.images.length > 0 ? req.body.images : undefined
       };
 
       Object.keys(updateData).forEach(key => {
@@ -129,25 +135,6 @@ static async getMyComplaints(req, res) {
     }
   }
 
-
-
-// Get complaint by ID
-static async getComplaintById(req, res) {
-  try {
-    const { id } = req.params;
-    const complaint = await ComplaintService.getComplaintById(id); 
-    
-    // No need to check !complaint here — service throws error if not found
-    res.json(complaint);
-  } catch (error) {
-    if (error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: error.message });
-    }
-  }
-}
-
   // DELETE: Delete a complaint by ID
   static async deleteComplaint(req, res) {
     try {
@@ -183,6 +170,6 @@ static async getComplaintById(req, res) {
       });
     }
   }
-
 }
+
 module.exports = ComplaintController;

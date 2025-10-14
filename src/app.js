@@ -49,7 +49,7 @@ app.use("/vehicle-bookings", vehicleBookingCountRoutes);
 app.use("/api/damage-reports", damageReportRoutes);
 app.use('/api', imageRoutes); // now uses /api/gallery
 app.use('/api/notification', notificationRoutes);
-
+app.use(express.json({ limit: '10mb' })); // Base64 සඳහා ප්‍රමාණවත් සීමාවක්
 // Not Found Handler
 app.use(notFoundMiddleware);
 

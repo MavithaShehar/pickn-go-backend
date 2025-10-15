@@ -31,7 +31,7 @@ const router = express.Router();
 // =====================
 
 // Create a booking
-router.post("/", authMiddleware, roleMiddleware("customer"), createBooking);
+router.post("/", authMiddleware, roleMiddleware("customer","owner"), createBooking);
 
 // Get all bookings for logged-in customer
 router.get("/customer", authMiddleware, roleMiddleware("customer", "owner"), getCustomerBookings);
@@ -44,10 +44,10 @@ router.get("/customer/:id", authMiddleware, roleMiddleware("customer"), getBooki
 
 
 // Update a booking (customer)
-router.put("/:id", authMiddleware, roleMiddleware("customer"), updateBooking);
+router.put("/:id", authMiddleware, roleMiddleware("customer","owner"), updateBooking);
 
 // Delete a booking (customer)
-router.delete("/:id", authMiddleware, roleMiddleware("customer"), deleteBooking);
+router.delete("/:id", authMiddleware, roleMiddleware("customer","owner"), deleteBooking);
 
 // Customer sends handover request
 router.put("/:id/request-handover", authMiddleware,roleMiddleware("customer"), requestHandover);

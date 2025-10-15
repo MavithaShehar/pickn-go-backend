@@ -204,7 +204,7 @@ const getProfile = async (req, res, next) => {
 // ---------------- Edit Own Profile ----------------
 const editProfile = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phoneNumber, addressLine1, addressLine2, city, district, postalCode } = req.body;
+    const { firstName, lastName,  gender, email, phoneNumber, addressLine1, addressLine2, city, district, postalCode } = req.body;
     const userId = req.user._id;
 
     const currentUser = await User.findById(userId);
@@ -231,6 +231,15 @@ const editProfile = async (req, res, next) => {
     if (city !== undefined) updateFields.city = city.trim();
     if (district !== undefined) updateFields.district = district.trim();
     if (postalCode !== undefined) updateFields.postalCode = postalCode.trim();
+
+      // ✅ Update gender with validation
+    if (gender !== undefined) {
+      const validGenders = ["male", "female"];
+      if (!validGenders.includes(gender)) {
+        return res.status(400).json({ message: "Invalid gender value" });
+      }
+      updateFields.gender = gender;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,

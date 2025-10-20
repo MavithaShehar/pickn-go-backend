@@ -1,29 +1,26 @@
 // controllers/complaint.controller.js
 const ComplaintService = require('../services/complaint.service');
-const Complaint = require('../models/complaint.model');
 
 const VALID_STATUSES = ['pending', 'processing', 'rejected', 'resolved'];
 
 class ComplaintController {
 
-  // ⭐ CHANGED: Create a new complaint with Base64 images
   static async createComplaint(req, res) {
     try {
       const complaintData = {
         ...req.body,
-        user: req.user._id,
-        // ⭐ CHANGED: Get images from req.body instead of req.files
-        images: req.body.images || []
+        user: req.user._id
+        // images already in req.body.images (Base64 array from middleware)
       };
 
       const complaint = await ComplaintService.createComplaint(complaintData);
       res.status(201).json(complaint);
     } catch (error) {
+      console.error('Create complaint error:', error);
       res.status(400).json({ error: error.message });
     }
   }
 
-  // Get all complaints created by the current user (customer)
   static async getMyComplaints(req, res) {
     try {
       const userId = req.user._id;
@@ -34,7 +31,6 @@ class ComplaintController {
     }
   }
 
-  // Get all complaints
   static async getAllComplaints(req, res) {
     try {
       const complaints = await ComplaintService.getAllComplaints();
@@ -44,7 +40,6 @@ class ComplaintController {
     }
   }
 
-  // Get complaint by ID
   static async getComplaintById(req, res) {
     try {
       const { id } = req.params;
@@ -59,29 +54,21 @@ class ComplaintController {
     }
   }
 
-  // ⭐ CHANGED: Edit complaint with Base64 images
   static async editComplaint(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user._id;
 
-      // ⭐ CHANGED: Validate Base64 images from req.body
-      if (req.body.images && req.body.images.length > 0) {
-        const validation = ComplaintService.validateImages(req.body.images);
-        if (!validation.valid) {
-          return res.status(400).json({ error: validation.message });
-        }
-      }
-
+      // Validation now happens in service (but images are already Base64)
       const updateData = {
         title: req.body.title,
         description: req.body.description,
-        // ⭐ CHANGED: Get images from req.body
-        images: req.body.images && req.body.images.length > 0 ? req.body.images : undefined
+        images: req.body.images // Could be [] if no files uploaded
       };
 
+      // Clean undefined fields
       Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined) {
+        if (updateData[key] === undefined || updateData[key] === '') {
           delete updateData[key];
         }
       });
@@ -99,14 +86,12 @@ class ComplaintController {
     }
   }
 
-  // Get complaints by status
   static async getComplaintsByStatus(req, res) {
     try {
       const { status } = req.params;
       if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
-
       const complaints = await ComplaintService.getComplaintsByStatus(status);
       res.json(complaints);
     } catch (error) {
@@ -114,48 +99,33 @@ class ComplaintController {
     }
   }
 
-  // Update complaint status
   static async updateComplaintStatus(req, res) {
     try {
       const { id } = req.params;
       const { status } = req.body;
-
       if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
-
       const complaint = await ComplaintService.updateComplaintStatus(id, status);
       if (!complaint) {
         return res.status(404).json({ error: 'Complaint not found' });
       }
-
       res.json(complaint);
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
   }
 
-  // DELETE: Delete a complaint by ID
   static async deleteComplaint(req, res) {
     try {
       const { id } = req.params;
-
       if (!id) {
-        return res.status(400).json({
-          success: false,
-          message: 'Complaint ID is required'
-        });
+        return res.status(400).json({ success: false, message: 'Complaint ID is required' });
       }
-
       const deletedComplaint = await ComplaintService.deleteComplaint(id);
-
       if (!deletedComplaint) {
-        return res.status(404).json({
-          success: false,
-          message: 'Complaint not found'
-        });
+        return res.status(404).json({ success: false, message: 'Complaint not found' });
       }
-
       return res.status(200).json({
         success: true,
         message: 'Complaint deleted successfully',

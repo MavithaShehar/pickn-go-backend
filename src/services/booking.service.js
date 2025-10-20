@@ -61,16 +61,26 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 
 // Create booking
-async function createBooking(vehicleId, customerId, bookingStartDate, bookingEndDate,startLocation, endLocation) {
-  // ✅ Verify customer exists and is verified
-  const customer = await User.findById(customerId);
-  if (!customer || customer.role !== "customer" || !customer.verificationStatus) {
-    throw new Error("Only verified customers can make bookings");
-  }
+async function createBooking(vehicleId, userId, bookingStartDate, bookingEndDate, startLocation, endLocation) {
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
 
   const vehicle = await Vehicle.findById(vehicleId);
   if (!vehicle) throw new Error("Vehicle not found");
   if (vehicle.status !== "available") throw new Error("Vehicle is not available");
+
+  // 🚫 Restrict owner from booking his/her own vehicle
+  if (vehicle.ownerId.toString() === userId.toString()) {
+    throw new Error("You cannot book your own vehicle");
+  }
+
+  // ✅ Allow both customers and owners to book, but customers must be verified
+  if (user.role === "customer" && !user.verificationStatus) {
+    throw new Error("Only verified customers can make bookings");
+  }
+  if (user.role !== "customer" && user.role !== "owner") {
+    throw new Error("Unauthorized role");
+  }
 
   // pricePerDay fallback
   const pricePerDay = (typeof vehicle.pricePerDay !== "undefined") ? vehicle.pricePerDay : vehicle.price;
@@ -113,7 +123,7 @@ const bookingCode = `BOOK-${datePart}-${sequenceNumber}`;
 const booking = new Booking({
   bookingCode, 
   vehicleId,
-  customerId,
+  customerId: userId,
   bookingStartDate: start,
   bookingEndDate: end,
   totalPrice,
@@ -131,8 +141,8 @@ await booking.save();
 
 // Customer edit booking
 async function updateBooking(bookingId, customerId, updates) {
-  const booking = await Booking.findOne({ _id: bookingId, customerId });
-  if (!booking) throw new Error("Booking not found");
+ const booking = await Booking.findOne({ _id: bookingId, customerId });
+if (!booking) throw new Error("Booking not found or not owned by you");
 
   // ✅ normalize date to UTC midnight
   const toDateOnly = (dateInput) => {
@@ -173,7 +183,7 @@ async function updateBooking(bookingId, customerId, updates) {
 // Customer delete booking
 async function deleteBooking(bookingId, customerId) {
   const booking = await Booking.findOneAndDelete({ _id: bookingId, customerId });
-  if (!booking) throw new Error("Booking not found or cannot delete");
+if (!booking) throw new Error("Booking not found or not owned by you");
 
   // Make vehicle available again
   await Vehicle.findByIdAndUpdate(booking.vehicleId, { status: "available" });

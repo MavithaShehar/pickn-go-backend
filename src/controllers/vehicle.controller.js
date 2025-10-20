@@ -10,6 +10,7 @@ const ensureVerifiedOwner = (req, res) => {
   }
   return true;
 };
+
 // Add new vehicle (Supports both Base64 and file upload)
 exports.addVehicle = async (req, res) => {
   try {
@@ -29,9 +30,9 @@ exports.addVehicle = async (req, res) => {
 
     let images = [];
 
-    // ✅ If files are uploaded (form-data)
+    // ✅ If files are uploaded (form-data), use Base64 from middleware
     if (req.files && req.files.length > 0) {
-      images = req.files.map(file => file.path || file.filename);
+      images = req.body.images; // ✅ Base64 already in req.body.images
     } 
     // ✅ If Base64 images are sent in body
     else if (req.body.images && req.body.images.length > 0) {
@@ -163,8 +164,6 @@ exports.getAvailableVehicles = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-
 
 exports.getAllAvailableVehicles = async (req, res) => {
   try {

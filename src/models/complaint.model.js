@@ -1,7 +1,6 @@
 // models/complaint.model.js
 const mongoose = require('mongoose');
-const { nanoid } = require('nanoid'); // npm install nanoid
-
+const { nanoid } = require('nanoid');
 
 const complaintSchema = new mongoose.Schema({
   complaintID: {
@@ -16,11 +15,11 @@ const complaintSchema = new mongoose.Schema({
     required: true
   },
   title: {
-  type: String,
-  required: [true, 'Title is required'],
-  trim: true,
-  maxlength: [200, 'Title cannot exceed 200 characters']
-},
+    type: String,
+    required: [true, 'Title is required'],
+    trim: true,
+    maxlength: [200, 'Title cannot exceed 200 characters']
+  },
   description: {
     type: String,
     trim: true,
@@ -34,8 +33,9 @@ const complaintSchema = new mongoose.Schema({
     },
     default: 'pending'
   },
+  // ⭐ CHANGED: Store Base64 strings instead of file paths
   images: {
-    type: [String],
+    type: [String], // Array of Base64 strings
     validate: {
       validator: function (arr) {
         return arr.length <= 5;

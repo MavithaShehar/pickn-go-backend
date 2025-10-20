@@ -9,11 +9,11 @@ const roleMiddleware = require("../middlewares/roleMiddleware");
 router.use(authMiddleware);
 
 // Create complaint with image upload
+
 router.post(
   '/',
   roleMiddleware("customer"),
-  uploadMiddleware.uploadArray('images', 5),   // ✅ corrected
-  uploadMiddleware.handleUploadErrors,
+ 
   ComplaintController.createComplaint
 );
 
@@ -35,8 +35,6 @@ router.patch('/:id/status', roleMiddleware("admin"), ComplaintController.updateC
 router.put(
   '/:id',
   roleMiddleware("customer"),
-  uploadMiddleware.uploadArray('images', 5),  // ✅ corrected
-  uploadMiddleware.handleUploadErrors,
   ComplaintController.editComplaint
 );
 

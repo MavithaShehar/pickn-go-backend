@@ -32,7 +32,7 @@ router.put(
 // Other routes (no file upload needed)
 router.get('/my-complaints', roleMiddleware("customer"), ComplaintController.getMyComplaints);
 router.get('/status/:status', roleMiddleware("admin"), ComplaintController.getComplaintsByStatus);
-router.get('/:id', roleMiddleware(["admin", "customer"]), ComplaintController.getComplaintById);
+router.get('/:id', roleMiddleware("admin", "customer"), ComplaintController.getComplaintById);
 router.patch('/:id/status', roleMiddleware("admin"), ComplaintController.updateComplaintStatus);
 router.get('/', roleMiddleware("admin"), ComplaintController.getAllComplaints);
 router.delete('/:id', roleMiddleware("customer"), ComplaintController.deleteComplaint);

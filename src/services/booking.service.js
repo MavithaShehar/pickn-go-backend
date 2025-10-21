@@ -517,6 +517,28 @@ async function acceptHandover(bookingId, ownerId, { endOdometer, ratePerKm }) {
   return booking;
 }
 
+// Change booking status
+const updateBookingStatus = async (id, status) => {
+  const allowedStatuses = ["completed", "confirmed", "ongoing", "pending", "cancelled"];
+
+  if (!allowedStatuses.includes(status)) {
+    throw new Error("Invalid status value");
+  }
+
+  const booking = await Booking.findByIdAndUpdate(
+    id,
+    { bookingStatus: status }, 
+    { new: true }
+  );
+
+  if (!booking) {
+    throw new Error("Booking not found");
+  }
+
+  return booking;
+};
+
+
 
 module.exports = {
   createBooking,
@@ -535,5 +557,6 @@ module.exports = {
   confirmBooking,
   requestHandover,
   acceptHandover,
-  getOwnerContactDetails, // ✅ added
+  getOwnerContactDetails, 
+  updateBookingStatus,
 };

@@ -2,6 +2,8 @@ const Vehicle = require("../models/vehicle.model");
 const User = require("../models/user.model");
 const sendEmail = require("../utils/sendEmail");
 const generateVehicleCode = require("../utils/generateVehicleCode");
+const paginate = require("../utils/paginate");
+
 
 
 
@@ -34,12 +36,11 @@ async function createVehicle(ownerId, vehicleData) {
   }
 }
 
-// Get all vehicles of an owner
-async function getOwnerVehicles(ownerId) {
+// Owner: get all vehicles of logged-in owner (paginated)
+async function getOwnerVehicles(ownerId, page, limit) {
   try {
-    await ensureVerifiedOwner(ownerId);
-    const vehicles = await Vehicle.find({ ownerId });
-    return { success: true, data: vehicles };
+    const result = await paginate(Vehicle, page, limit, { ownerId });
+    return { success: true, data: result.data, pagination: result.pagination };
   } catch (error) {
     return { success: false, message: error.message };
   }
@@ -107,31 +108,32 @@ async function getAvailableVehicles() {
   return vehicles;
 }
 
-// Admin: get all available vehicles
-async function getAllAvailableVehicles() {
+// Admin: get all available vehicles (paginated)
+async function getAllAvailableVehicles(page, limit) {
   try {
-    const vehicles = await Vehicle.find({ status: "available" });
-    return { success: true, data: vehicles };
+    const result = await paginate(Vehicle, page, limit, { status: "available" });
+    return { success: true, data: result.data, pagination: result.pagination };
   } catch (error) {
     return { success: false, message: error.message };
   }
 }
 
-// Admin: get all unavailable vehicles
-async function getAllUnavailableVehicles() {
+// Admin: get all unavailable vehicles (paginated)
+async function getAllUnavailableVehicles(page, limit) {
   try {
-    const vehicles = await Vehicle.find({ status: "unavailable" });
-    return { success: true, data: vehicles };
+    const result = await paginate(Vehicle, page, limit, { status: "unavailable" });
+    return { success: true, data: result.data, pagination: result.pagination };
   } catch (error) {
     return { success: false, message: error.message };
   }
 }
 
-// Admin: get all unverified vehicles
-async function getAllUnvarifiedVehicles() {
+
+// Admin: get all unverified vehicles (paginated)
+async function getAllUnvarifiedVehicles(page, limit) {
   try {
-    const vehicles = await Vehicle.find({ verificationStatus: false });
-    return { success: true, data: vehicles };
+    const result = await paginate(Vehicle, page, limit, { verificationStatus: false });
+    return { success: true, data: result.data, pagination: result.pagination };
   } catch (error) {
     return { success: false, message: error.message };
   }
@@ -182,18 +184,20 @@ async function updateVehicleStatus(ownerId, vehicleId, status) {
   }
 }
 
-// Get all available vehicles of the same owner as a given vehicle
-async function getAvailableVehiclesByOwner(vehicleId) {
+// Get all available vehicles of the same owner as a given vehicle (paginated)
+async function getAvailableVehiclesByOwner(vehicleId, page, limit) {
   try {
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) return { success: false, message: "Vehicle not found" };
 
-    const vehicles = await Vehicle.find({ ownerId: vehicle.ownerId, status: "available" });
-    return { success: true, data: vehicles };
+    const result = await paginate(Vehicle, page, limit, { ownerId: vehicle.ownerId, status: "available" });
+
+    return { success: true, data: result.data, pagination: result.pagination };
   } catch (error) {
     return { success: false, message: error.message };
   }
 }
+
 
 // Admin updates verification status (true/false)
 async function adminUpdateVerificationStatus(vehicleId, status) {

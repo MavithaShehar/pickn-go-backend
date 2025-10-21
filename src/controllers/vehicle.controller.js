@@ -48,11 +48,16 @@ exports.addVehicle = async (req, res) => {
   }
 };
 
-// Get all vehicles of logged-in owner
+// Get all vehicles of logged-in owner (paginated)
 exports.getVehicles = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
-    const vehicles = await vehicleService.getOwnerVehicles(req.user.id);
+
+    // Get ?page=1&limit=2 from query params
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 2;
+
+    const vehicles = await vehicleService.getOwnerVehicles(req.user.id, page, limit);
     res.json(vehicles);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -165,9 +170,13 @@ exports.getAvailableVehicles = async (req, res) => {
   }
 };
 
+// Admin: get all available vehicles (paginated)
 exports.getAllAvailableVehicles = async (req, res) => {
   try {
-    const vehicles = await vehicleService.getAllAvailableVehicles();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 2;
+
+    const vehicles = await vehicleService.getAllAvailableVehicles(page, limit);
     res.json(vehicles);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -186,29 +195,44 @@ exports.adminVerifyVehicle = async (req, res) => {
   }
 };
 
+// Admin: get all unverified vehicles (paginated)
 exports.getAllUnvarifiedVehicles = async (req, res) => {
   try {
-    const vehicles = await vehicleService.getAllUnvarifiedVehicles();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 2;
+
+    const vehicles = await vehicleService.getAllUnvarifiedVehicles(page, limit);
     res.json(vehicles);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// Admin: get all unavailable vehicles (paginated)
 exports.getAllUnavailableVehicles = async (req, res) => {
   try {
-    const vehicles = await vehicleService.getAllUnavailableVehicles();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 2;
+
+    const vehicles = await vehicleService.getAllUnavailableVehicles(page, limit);
     res.json(vehicles);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// Get available vehicles by owner (paginated)
 exports.getAvailableVehiclesByOwner = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 2;
+
     const vehicles = await vehicleService.getAvailableVehiclesByOwner(
-      req.params.id
+      req.params.id,
+      page,
+      limit
     );
+
     if (!vehicles) return res.status(404).json({ message: "Vehicle not found" });
 
     res.json(vehicles);

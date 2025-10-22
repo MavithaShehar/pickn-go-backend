@@ -237,17 +237,32 @@ async function getCustomerBookings(customerId) {
   const bookings = await Booking.find({ customerId, bookingStatus: { $ne: "cancelled" } })
     .populate({ path: "vehicleId", select: "_id title year pricePerDay" });
 
-  return bookings.map(b => ({
-    _id: b._id,
-    bookingCode: b.bookingCode,
-    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
-    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
-    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
-    totalPrice: b.totalPrice,
-    bookingStatus: b.bookingStatus,
-    startLocation: b.startLocation,
-    endLocation: b.endLocation,
-  }));
+  return bookings.map(b => {
+    // 💡 FIX: Check if b.vehicleId exists before accessing its properties
+    const vehicleDetails = b.vehicleId 
+      ? { 
+          _id: b.vehicleId._id, 
+          title: b.vehicleId.title, 
+          year: b.vehicleId.year 
+        } 
+      : { 
+          _id: 'deleted', 
+          title: 'Vehicle Not Found', 
+          year: 'N/A' 
+        }; // Provide fallback details
+
+    return {
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: vehicleDetails, // Use the safe details object
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    };
+  });
 }
 
 // Owner bookings — short response

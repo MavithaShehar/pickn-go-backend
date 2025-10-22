@@ -38,7 +38,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/vehicle-types", vehicleTypeRoutes);
 app.use("/api/fuel-types", fuelTypeRoutes);
-app.use("/api/contact", contactRoutes);
+app.use("/api/users/contact", contactRoutes);
 
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/search", searchRoutes);

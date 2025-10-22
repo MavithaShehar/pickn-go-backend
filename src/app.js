@@ -49,6 +49,7 @@ app.use("/api/licenses", licenseRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/vehicle-bookings", vehicleBookingCountRoutes);
 app.use("/api/damage-reports", damageReportRoutes);
+app.use("/api/users/contact", contactRoutes);
 app.use('/api', imageRoutes); // now uses /api/gallery
 app.use('/api/notification', notificationRoutes);
 app.use(express.json({ limit: '10mb' })); 

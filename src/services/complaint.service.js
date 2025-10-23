@@ -1,31 +1,60 @@
+// services/complaint.service.js
 const Complaint = require('../models/complaint.model');
-const fs = require('fs').promises; // Use promise-based fs
-const path = require('path');
-
 
 class ComplaintService {
 
-  // Validate uploaded images
-  static validateImages(files) {
-    if (files.length > 5) {
+  // ⭐ CHANGED: Validate Base64 images instead of multer files
+  static validateImages(images) {
+    // Check if images is an array
+    if (!Array.isArray(images)) {
+      return { valid: false, message: 'Images must be an array' };
+    }
+
+    // Check maximum number of images
+    if (images.length > 5) {
       return { valid: false, message: 'Maximum 5 images allowed' };
     }
 
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-    for (let file of files) {
-      if (!allowedMimeTypes.includes(file.mimetype)) {
-        return { valid: false, message: 'Only JPEG, PNG images are allowed' };
+    // Validate Base64 format and image type
+    const base64ImageRegex = /^data:image\/(jpeg|jpg|png);base64,/;
+    
+    for (let image of images) {
+      // Check if image is a string
+      if (typeof image !== 'string') {
+        return { valid: false, message: 'Each image must be a Base64 string' };
+      }
+
+      // Check if image has correct Base64 format
+      if (!base64ImageRegex.test(image)) {
+        return { 
+          valid: false, 
+          message: 'Only JPEG, PNG images are allowed in Base64 format (data:image/jpeg;base64,... or data:image/png;base64,...)' 
+        };
+      }
+
+      // Check Base64 string size (approximately 10MB limit per image)
+      const sizeInBytes = (image.length * 3) / 4;
+      const sizeInMB = sizeInBytes / (1024 * 1024);
+      if (sizeInMB > 10) {
+        return { valid: false, message: 'Each image must be less than 10MB' };
       }
     }
 
     return { valid: true, message: 'Images are valid' };
   }
 
-  // Create new complaint
+  // ⭐ CHANGED: Create new complaint with Base64 validation
   static async createComplaint(complaintData) {
-    
     try {
-      // ✅ Let the model generate complaintID automatically
+      // Validate images if provided
+      if (complaintData.images && complaintData.images.length > 0) {
+        const validation = this.validateImages(complaintData.images);
+        if (!validation.valid) {
+          throw new Error(validation.message);
+        }
+      }
+
+      // Create and save complaint
       const complaint = new Complaint(complaintData);
       return await complaint.save();
     } catch (error) {
@@ -34,28 +63,28 @@ class ComplaintService {
   }
 
   // Get complaints by user ID
-static async getComplaintsByUser(userId) {
-  try {
-    return await Complaint.find({ user: userId })
-      .populate('user', 'firstname email')
-      .sort({ dateCreated: -1 });
-  } catch (error) {
-    throw new Error(`Error fetching your complaints: ${error.message}`);
+  static async getComplaintsByUser(userId) {
+    try {
+      return await Complaint.find({ user: userId })
+        .populate('user', 'firstname email')
+        .sort({ dateCreated: -1 });
+    } catch (error) {
+      throw new Error(`Error fetching your complaints: ${error.message}`);
+    }
   }
-}
 
   // Get all complaints
   static async getAllComplaints() {
     try {
       return await Complaint.find()
-        .populate('user', 'firstname email') 
+        .populate('user', 'firstname email')
         .sort({ dateCreated: -1 });
     } catch (error) {
       throw new Error(`Error fetching complaints: ${error.message}`);
     }
   }
 
-   // ✅ GET COMPLAINT BY ID — NOW INSIDE CLASS
+  // Get complaint by ID
   static async getComplaintById(id) {
     try {
       const complaint = await Complaint.findById(id).populate('user', 'firstname email');
@@ -79,34 +108,38 @@ static async getComplaintsByUser(userId) {
     }
   }
 
-  // Edit complaint (only owner + pending)
+  // ⭐ CHANGED: Edit complaint - removed file deletion logic
   static async editComplaint(complaintId, userId, updateData) {
     try {
+      // Find the complaint
       const complaint = await Complaint.findById(complaintId);
-      
+
       if (!complaint) {
         throw new Error('Complaint not found');
       }
 
+      // Check ownership
       if (complaint.user.toString() !== userId.toString()) {
         throw new Error('You can only edit your own complaints');
       }
 
+      // Check status
       if (complaint.status !== 'pending') {
         throw new Error('Only pending complaints can be edited');
       }
 
-      // Delete old images if new ones are uploaded
-      if (updateData.images && complaint.images && complaint.images.length > 0) {
-        const deletePromises = complaint.images.map(imagePath => {
-          const fullPath = path.join(__dirname, '..', imagePath);
-          return fs.unlink(fullPath).catch(err => {
-            console.log('Error deleting old image:', err.message);
-          });
-        });
-        await Promise.all(deletePromises);
+      // ⭐ CHANGED: Validate new Base64 images if provided
+      if (updateData.images && updateData.images.length > 0) {
+        const validation = this.validateImages(updateData.images);
+        if (!validation.valid) {
+          throw new Error(validation.message);
+        }
       }
 
+      // ⭐ REMOVED: No need to delete old image files from filesystem
+      // With Base64, images are stored in database and automatically replaced
+
+      // Update the complaint
       const updatedComplaint = await Complaint.findByIdAndUpdate(
         complaintId,
         {
@@ -137,22 +170,23 @@ static async getComplaintsByUser(userId) {
     }
   }
 
-  
-   // Delete complaint by ID
+  // ⭐ CHANGED: Delete complaint - removed file deletion logic
   static async deleteComplaint(id) {
     try {
       const complaint = await Complaint.findByIdAndDelete(id);
 
       if (!complaint) {
-        return null; // Not found
+        return null;
       }
+
+      // ⭐ REMOVED: No need to delete image files from filesystem
+      // Base64 images are stored in database and automatically deleted with the document
 
       return complaint;
     } catch (error) {
       throw new Error(`Failed to delete complaint: ${error.message}`);
     }
   }
-
 }
 
 module.exports = ComplaintService;

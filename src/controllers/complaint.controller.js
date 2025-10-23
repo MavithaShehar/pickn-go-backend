@@ -1,37 +1,36 @@
+// controllers/complaint.controller.js
 const ComplaintService = require('../services/complaint.service');
-const Complaint = require('../models/complaint.model');
 
 const VALID_STATUSES = ['pending', 'processing', 'rejected', 'resolved'];
 
 class ComplaintController {
 
-  // Create a new complaint
   static async createComplaint(req, res) {
     try {
       const complaintData = {
         ...req.body,
-        user: req.user._id,
-        images: req.files ? req.files.map(file => file.path) : []
+        user: req.user._id
+        // images already in req.body.images (Base64 array from middleware)
       };
 
       const complaint = await ComplaintService.createComplaint(complaintData);
       res.status(201).json(complaint);
     } catch (error) {
+      console.error('Create complaint error:', error);
       res.status(400).json({ error: error.message });
     }
   }
-  // Get all complaints created by the current user (customer)
-static async getMyComplaints(req, res) {
-  try {
-    const userId = req.user._id;
-    const complaints = await ComplaintService.getComplaintsByUser(userId);
-    res.json(complaints);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
 
-  // Get all complaints
+  static async getMyComplaints(req, res) {
+    try {
+      const userId = req.user._id;
+      const complaints = await ComplaintService.getComplaintsByUser(userId);
+      res.json(complaints);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getAllComplaints(req, res) {
     try {
       const complaints = await ComplaintService.getAllComplaints();
@@ -41,41 +40,35 @@ static async getMyComplaints(req, res) {
     }
   }
 
-  // Get complaint by ID
   static async getComplaintById(req, res) {
     try {
       const { id } = req.params;
-      const complaint = await ComplaintService.getComplaintById(id); 
-      
-     
-
+      const complaint = await ComplaintService.getComplaintById(id);
       res.json(complaint);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      if (error.message.includes('not found')) {
+        res.status(404).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
     }
   }
 
-  // Edit complaint
   static async editComplaint(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user._id;
 
-      if (req.files && req.files.length > 0) {
-        const validation = ComplaintService.validateImages(req.files);
-        if (!validation.valid) {
-          return res.status(400).json({ error: validation.message });
-        }
-      }
-
+      // Validation now happens in service (but images are already Base64)
       const updateData = {
         title: req.body.title,
         description: req.body.description,
-        images: req.files && req.files.length > 0 ? req.files.map(file => file.path) : undefined
+        images: req.body.images // Could be [] if no files uploaded
       };
 
+      // Clean undefined fields
       Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined) {
+        if (updateData[key] === undefined || updateData[key] === '') {
           delete updateData[key];
         }
       });
@@ -93,14 +86,12 @@ static async getMyComplaints(req, res) {
     }
   }
 
-  // Get complaints by status
   static async getComplaintsByStatus(req, res) {
     try {
       const { status } = req.params;
       if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
-
       const complaints = await ComplaintService.getComplaintsByStatus(status);
       res.json(complaints);
     } catch (error) {
@@ -108,67 +99,33 @@ static async getMyComplaints(req, res) {
     }
   }
 
-  // Update complaint status
   static async updateComplaintStatus(req, res) {
     try {
       const { id } = req.params;
       const { status } = req.body;
-
       if (!VALID_STATUSES.includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
-
       const complaint = await ComplaintService.updateComplaintStatus(id, status);
       if (!complaint) {
         return res.status(404).json({ error: 'Complaint not found' });
       }
-
       res.json(complaint);
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
   }
 
-
-
-// Get complaint by ID
-static async getComplaintById(req, res) {
-  try {
-    const { id } = req.params;
-    const complaint = await ComplaintService.getComplaintById(id); 
-    
-    // No need to check !complaint here — service throws error if not found
-    res.json(complaint);
-  } catch (error) {
-    if (error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: error.message });
-    }
-  }
-}
-
-  // DELETE: Delete a complaint by ID
   static async deleteComplaint(req, res) {
     try {
       const { id } = req.params;
-
       if (!id) {
-        return res.status(400).json({
-          success: false,
-          message: 'Complaint ID is required'
-        });
+        return res.status(400).json({ success: false, message: 'Complaint ID is required' });
       }
-
       const deletedComplaint = await ComplaintService.deleteComplaint(id);
-
       if (!deletedComplaint) {
-        return res.status(404).json({
-          success: false,
-          message: 'Complaint not found'
-        });
+        return res.status(404).json({ success: false, message: 'Complaint not found' });
       }
-
       return res.status(200).json({
         success: true,
         message: 'Complaint deleted successfully',
@@ -183,6 +140,6 @@ static async getComplaintById(req, res) {
       });
     }
   }
-
 }
+
 module.exports = ComplaintController;

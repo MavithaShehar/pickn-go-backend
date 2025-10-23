@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { createAlert } = require("../services/alert.service");
 
 const bookingSchema = new mongoose.Schema({
   bookingCode: { type: String, unique: true },
@@ -29,6 +30,15 @@ const bookingSchema = new mongoose.Schema({
   handoverRequest: { type: Boolean, default: false }
 
 }, { timestamps: true });
-  
+
+// ✅ When a booking is first created
+bookingSchema.post("save", async function (doc) {
+  await createAlert({
+    bookingId: doc._id,
+    customerId: doc.customerId,
+    message: `Booking ${doc.bookingCode || doc._id} created successfully.`,
+  });
+});
+
 
 module.exports = mongoose.model("Booking", bookingSchema);

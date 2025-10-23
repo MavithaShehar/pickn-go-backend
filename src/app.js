@@ -21,7 +21,7 @@ const damageReportRoutes = require('./routes/damageReport.routes');
 const imageRoutes = require('./routes/imageGallery.routes');
 const contactRoutes = require("./routes/contactUs.routes");
 const notificationRoutes = require("./routes/notification.routes");
-
+const alertRoutes = require("./routes/alert.routes");
 const app = express();
 
 // ------------------ Middlewares ------------------
@@ -51,6 +51,7 @@ app.use("/vehicle-bookings", vehicleBookingCountRoutes);
 app.use("/api/damage-reports", damageReportRoutes);
 app.use('/api', imageRoutes); // now uses /api/gallery
 app.use('/api/notification', notificationRoutes);
+app.use('/api/alerts', alertRoutes);
 app.use(express.json({ limit: '10mb' })); 
 // Not Found Handler
 app.use(notFoundMiddleware);

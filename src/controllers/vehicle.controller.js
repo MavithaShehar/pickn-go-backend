@@ -194,6 +194,17 @@ exports.getAllUnvarifiedVehicles = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+exports.getAllVerifiedVehicles = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getAllVerifiedVehicles();
+    if (!vehicles.success) {
+      return res.status(400).json({ message: vehicles.message });
+    }
+    res.json(vehicles.data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 exports.getAllUnavailableVehicles = async (req, res) => {
   try {

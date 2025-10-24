@@ -11,6 +11,7 @@ const {
   adminVerifyUser,
   adminSuspendUser,
   getUnverifiedUsers,
+  getVerifiedUsers,
   getAllUsers,
   updateAvatar,
 } = require("../controllers/user.controller");
@@ -100,5 +101,7 @@ router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
 router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyUser);
 router.patch("/:id/suspend", authMiddleware, roleMiddleware("admin"), adminSuspendUser);
 router.get("/unverified", authMiddleware, roleMiddleware("admin"), getUnverifiedUsers);
+router.get("/verified", authMiddleware, roleMiddleware("admin"), getVerifiedUsers);
+
 
 module.exports = router;

@@ -1,5 +1,7 @@
 const vehicleService = require("../services/vehicle.service");
 const User = require("../models/user.model");
+const paginate = require("../utils/paginate");
+const Vehicle = require("../models/vehicle.model");
 
 // Helper: ensure user is a verified owner
 const ensureVerifiedOwner = (req, res) => {
@@ -268,6 +270,175 @@ exports.adminUpdateVerificationStatus = async (req, res) => {
     if (error.message === "Vehicle not found") {
       return res.status(404).json({ message: error.message });
     }
+    res.status(500).json({ message: error.message });
+  }
+};
+// ============================
+// OWNER PAGINATED VEHICLES
+// ============================
+exports.getVehiclesPaginated = async (req, res) => {
+  try {
+    if (req.user.role !== "owner" || !req.user.verificationStatus) {
+      return res.status(403).json({ message: "Only verified owners can perform this action" });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { ownerId: req.user.id },
+      []
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated owner vehicles fetched successfully",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================
+// CUSTOMER: PAGINATED AVAILABLE VEHICLES BY OWNER
+// ============================
+
+// ✅ Customer: Get paginated available vehicles by vehicleId
+exports.getPaginatedAvailableVehiclesByOwner = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+
+    // 1️⃣ Find the selected vehicle to get the owner
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle)
+      return res.status(404).json({ message: "Vehicle not found" });
+
+    // 2️⃣ Get that owner's available & verified vehicles
+    const filter = {
+      ownerId: vehicle.ownerId,
+      status: "available",
+      verificationStatus: true,
+    };
+
+    // 3️⃣ Use pagination utility
+    const result = await paginate(
+      Vehicle,
+      page,
+      limit,
+      filter,
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Paginated available vehicles fetched successfully",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================
+// CUSTOMER: ALL AVAILABLE VEHICLES (Paginated)
+// ============================
+exports.getAvailableVehiclesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { status: "available", verificationStatus: true },
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated available vehicles fetched successfully",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================
+// ADMIN: PAGINATED VEHICLE LISTS
+// ============================
+exports.getAllAvailableVehiclesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { status: "available" },
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated available vehicles (admin)",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getAllUnavailableVehiclesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { status: "unavailable" },
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated unavailable vehicles (admin)",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getAllUnverifiedVehiclesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { verificationStatus: false },
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated unverified vehicles (admin)",
+      ...result,
+    });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

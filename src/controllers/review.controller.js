@@ -1,5 +1,6 @@
 const reviewService = require("../services/review.service");
 
+
 // Create review (customer only)
 exports.createReview = async (req, res) => {
   try {
@@ -88,5 +89,48 @@ exports.getReviewsForVehicle = async (req, res) => {
     res.json(reviews);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+// Admin: get all reviews paginated
+exports.getAllReviewsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const reviews = await reviewService.getAllReviewsPaginated(parseInt(page), parseInt(limit));
+    res.json({ success: true, message: "All reviews fetched (paginated)", ...reviews });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// Owner: get reviews for their vehicles paginated
+exports.getOwnerReviewsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const reviews = await reviewService.getReviewsForOwnerPaginated(req.user.id, parseInt(page), parseInt(limit));
+    res.json({ success: true, message: "Owner reviews fetched (paginated)", ...reviews });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// Customer: get own reviews paginated
+exports.getMyReviewsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const reviews = await reviewService.getReviewsByUserPaginated(req.user.id, parseInt(page), parseInt(limit));
+    res.json({ success: true, message: "Customer reviews fetched (paginated)", ...reviews });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// Public: get reviews for a vehicle paginated
+exports.getReviewsForVehiclePaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const reviews = await reviewService.getReviewsForVehiclePaginated(req.params.vehicleId, parseInt(page), parseInt(limit));
+    res.json({ success: true, message: "Vehicle reviews fetched (paginated)", ...reviews });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
   }
 };

@@ -1,6 +1,7 @@
 const Review = require("../models/review.model");
 const Booking = require("../models/booking.model");
 const Vehicle = require("../models/vehicle.model");
+const paginate = require("../utils/paginate");
 
 // Create a review
 async function createReview(userId, bookingId, vehicleId, rating, comment) {
@@ -90,6 +91,51 @@ async function getReviewsForVehicle(vehicleId) {
     .populate("userId", "firstName lastName")
     .populate("bookingId", "startDate endDate");
 }
+// Paginated versions using utils/paginate.js
+
+async function getAllReviewsPaginated(page, limit) {
+  return await paginate(Review, page, limit, {}, [
+    { path: "userId", select: "firstName lastName" },
+    { path: "vehicleId", select: "name model" }
+  ]);
+}
+
+async function getReviewsForOwnerPaginated(ownerId, page, limit) {
+  const vehicles = await Vehicle.find({ ownerId }).select("_id");
+  const vehicleIds = vehicles.map(v => v._id);
+
+  return await paginate(
+    Review,
+    page,
+    limit,
+    { vehicleId: { $in: vehicleIds } },
+    [
+      { path: "userId", select: "firstName lastName" },
+      { path: "vehicleId", select: "name model" }
+    ]
+  );
+}
+
+async function getReviewsByUserPaginated(userId, page, limit) {
+  return await paginate(
+    Review,
+    page,
+    limit,
+    { userId },
+    [{ path: "vehicleId", select: "name model" }]
+  );
+}
+
+async function getReviewsForVehiclePaginated(vehicleId, page, limit) {
+  return await paginate(
+    Review,
+    page,
+    limit,
+    { vehicleId },
+    [{ path: "userId", select: "firstName lastName" }]
+  );
+}
+
 
 module.exports = {
   createReview,
@@ -100,4 +146,8 @@ module.exports = {
   adminDeleteReview,
   getReviewsByUser,
   getReviewsForVehicle,
+  getAllReviewsPaginated,
+  getReviewsForOwnerPaginated,
+  getReviewsByUserPaginated,
+  getReviewsForVehiclePaginated,
 };

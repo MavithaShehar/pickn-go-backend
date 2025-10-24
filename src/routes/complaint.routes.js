@@ -32,9 +32,24 @@ router.put(
 // Other routes (no file upload needed)
 router.get('/my-complaints', roleMiddleware("customer"), ComplaintController.getMyComplaints);
 router.get('/status/:status', roleMiddleware("admin"), ComplaintController.getComplaintsByStatus);
-router.get('/:id', roleMiddleware("admin", "customer"), ComplaintController.getComplaintById);
+
+
+
 router.patch('/:id/status', roleMiddleware("admin"), ComplaintController.updateComplaintStatus);
+// Admin paginated complaints
+router.get('/paginated', roleMiddleware("admin"), ComplaintController.getAllComplaintsPaginated);
+// Admin paginated complaints by status
+router.get('/status/:status/paginated', roleMiddleware("admin"), ComplaintController.getComplaintsByStatusPaginated);
+
+router.get('/:id', roleMiddleware("admin", "customer"), ComplaintController.getComplaintById);
 router.get('/', roleMiddleware("admin"), ComplaintController.getAllComplaints);
 router.delete('/:id', roleMiddleware("customer"), ComplaintController.deleteComplaint);
+
+// routes/complaint.routes.js
+
+// Customer paginated complaints
+router.get('/my-complaints/paginated', roleMiddleware("customer"), ComplaintController.getMyComplaintsPaginated);
+
+
 
 module.exports = router;

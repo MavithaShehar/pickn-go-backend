@@ -3,28 +3,34 @@ const vehicleController = require("../controllers/vehicle.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 const vehicleBookingCountRoutes = require("./vehicleBookingCount.routes");
-const uploadMiddleware = require("../middlewares/uploadMiddleware"); // ✅ add this
+const uploadMiddleware = require("../middlewares/uploadMiddleware"); // ✅ multer diskStorage
 
 const router = express.Router();
 
-// This MUST come first and NOT have authMiddleware
+// ---------------- Public Routes ----------------
+
+// Get all available vehicles (no auth required)
 router.get("/available", vehicleController.getAvailableVehicles);
 
 // ---------------- Booking Count Routes ----------------
-// Only include authMiddleware if needed inside that route
 router.use("/", vehicleBookingCountRoutes);
 
-// Owner routes
+// ---------------- Owner Routes ----------------
+
+// Add Vehicle (with multiple images)
 router.post(
   "/",
   authMiddleware,
   roleMiddleware("owner"),
-  uploadMiddleware.uploadArray("images", 5), // ✅ handle multiple images
-  uploadMiddleware.handleUploadErrors,
-  uploadMiddleware.convertFilesToBase64,     // ✅ convert uploaded files to Base64
+  (req, res, next) => {
+    req.uploadType = "vehicle"; // important!
+    next();
+  },
+  uploadMiddleware.array("images", 5), // handle multiple images
   vehicleController.addVehicle
 );
 
+// Get Owner Vehicles
 router.get(
   "/owner/vehicle",
   authMiddleware,
@@ -32,6 +38,7 @@ router.get(
   vehicleController.getVehicles
 );
 
+// Get Vehicle by ID (Owner)
 router.get(
   "/:id",
   authMiddleware,
@@ -39,6 +46,7 @@ router.get(
   vehicleController.getVehicleById
 );
 
+// Update Vehicle (Owner)
 router.put(
   "/:id",
   authMiddleware,
@@ -46,16 +54,20 @@ router.put(
   vehicleController.updateVehicle
 );
 
+// Update Vehicle Images Only (Owner)
 router.put(
   "/:id/images",
   authMiddleware,
   roleMiddleware("owner"),
-  uploadMiddleware.uploadArray("images", 5), // ✅ handle multiple images
-  uploadMiddleware.handleUploadErrors,
-  uploadMiddleware.convertFilesToBase64,     // ✅ convert uploaded files to Base64
+  (req, res, next) => {
+    req.uploadType = "vehicle";
+    next();
+  },
+  uploadMiddleware.array("images", 5), // handle multiple images
   vehicleController.updateVehicleImagesOnly
 );
 
+// Update Vehicle Status (Owner)
 router.put(
   "/:id/status",
   authMiddleware,
@@ -63,6 +75,7 @@ router.put(
   vehicleController.updateVehicleStatus
 );
 
+// Delete Vehicle (Owner)
 router.delete(
   "/:id",
   authMiddleware,
@@ -70,16 +83,19 @@ router.delete(
   vehicleController.deleteVehicle
 );
 
-// Customer routes
-// Get available vehicles by a specific owner - getting access denied error
+// ---------------- Customer Routes ----------------
+
+// Get available vehicles by owner
 router.get(
   "/owner/:id/available",
   authMiddleware,
-  roleMiddleware("customer"), 
+  roleMiddleware("customer"),
   vehicleController.getAvailableVehiclesByOwner
 );
 
-// Admin routes
+// ---------------- Admin Routes ----------------
+
+// Get all available vehicles
 router.get(
   "/admin/available",
   authMiddleware,
@@ -87,6 +103,7 @@ router.get(
   vehicleController.getAllAvailableVehicles
 );
 
+// Get all unavailable vehicles
 router.get(
   "/admin/unavailable",
   authMiddleware,
@@ -94,12 +111,15 @@ router.get(
   vehicleController.getAllUnavailableVehicles
 );
 
+// Get all unverified vehicles
 router.get(
   "/admin/unverified",
   authMiddleware,
   roleMiddleware("admin"),
   vehicleController.getAllUnvarifiedVehicles
 );
+
+// Get all verified vehicles
 router.get(
   "/admin/verified",
   authMiddleware,
@@ -107,7 +127,7 @@ router.get(
   vehicleController.getAllVerifiedVehicles
 );
 
-// this route is for admin to verify vehicle
+// Admin verify vehicle
 router.patch(
   "/:id/verify",
   authMiddleware,
@@ -115,6 +135,7 @@ router.patch(
   vehicleController.adminVerifyVehicle
 );
 
+// Admin update verification status
 router.put(
   "/:id/verification",
   authMiddleware,

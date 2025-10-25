@@ -1,10 +1,9 @@
-// routes/complaint.routes.js
 const express = require('express');
 const router = express.Router();
 const ComplaintController = require('../controllers/complaint.controller');
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleMiddleware = require("../middlewares/roleMiddleware");
-const { uploadArray, handleUploadErrors, convertFilesToBase64 } = require('../middlewares/uploadMiddleware');
+const upload = require('../middlewares/uploadMiddleware'); // ✅ multer instance
 
 // All routes require authentication
 router.use(authMiddleware);
@@ -13,9 +12,8 @@ router.use(authMiddleware);
 router.post(
   '/',
   roleMiddleware("customer"),
-  uploadArray('images', 5),
-  handleUploadErrors,
-  convertFilesToBase64,
+  (req, res, next) => { req.uploadType = "complaint"; next(); }, // optional folder type
+  upload.array('images', 5), // ✅ multer array directly
   ComplaintController.createComplaint
 );
 
@@ -23,9 +21,8 @@ router.post(
 router.put(
   '/:id',
   roleMiddleware("customer"),
-  uploadArray('images', 5),
-  handleUploadErrors,
-  convertFilesToBase64,
+  (req, res, next) => { req.uploadType = "complaint"; next(); },
+  upload.array('images', 5),
   ComplaintController.editComplaint
 );
 

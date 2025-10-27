@@ -137,6 +137,17 @@ async function getAllUnvarifiedVehicles() {
   }
 }
 
+// Admin: get all verified vehicles
+async function getAllVerifiedVehicles() {
+  try {
+    const vehicles = await Vehicle.find({ verificationStatus: true });
+    return { success: true, data: vehicles };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+}
+
+
 // Admin verifies a vehicle and notifies owner by email
 async function adminVerifyVehicle(vehicleId) {
   try {
@@ -225,4 +236,5 @@ module.exports = {
   updateVehicleStatus,
   adminUpdateVerificationStatus,
   adminVerifyVehicle,
+   getAllVerifiedVehicles, // ✅ new export
 };

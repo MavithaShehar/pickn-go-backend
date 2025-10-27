@@ -16,7 +16,8 @@ const {
   confirmBooking,
   requestHandover,
   acceptHandover,
-   getOwnerContactDetails,  // ✅ Add this line
+  getOwnerContactDetails,  
+  updateBookingStatus
 
 } = require("../controllers/booking.controller");
 
@@ -25,6 +26,10 @@ const roleMiddleware = require("../middlewares/roleMiddleware");
 const upload = require("../middlewares/upload"); // multer middleware
 
 const router = express.Router();
+
+router.patch('/:id/status', authMiddleware, roleMiddleware("owner","admin"), updateBookingStatus);
+
+
 
 // =====================
 // Customer Routes

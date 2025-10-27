@@ -237,17 +237,32 @@ async function getCustomerBookings(customerId) {
   const bookings = await Booking.find({ customerId, bookingStatus: { $ne: "cancelled" } })
     .populate({ path: "vehicleId", select: "_id title year pricePerDay" });
 
-  return bookings.map(b => ({
-    _id: b._id,
-    bookingCode: b.bookingCode,
-    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
-    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
-    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
-    totalPrice: b.totalPrice,
-    bookingStatus: b.bookingStatus,
-    startLocation: b.startLocation,
-    endLocation: b.endLocation,
-  }));
+  return bookings.map(b => {
+    // 💡 FIX: Check if b.vehicleId exists before accessing its properties
+    const vehicleDetails = b.vehicleId 
+      ? { 
+          _id: b.vehicleId._id, 
+          title: b.vehicleId.title, 
+          year: b.vehicleId.year 
+        } 
+      : { 
+          _id: 'deleted', 
+          title: 'Vehicle Not Found', 
+          year: 'N/A' 
+        }; // Provide fallback details
+
+    return {
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: vehicleDetails, // Use the safe details object
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    };
+  });
 }
 
 // Owner bookings — short response
@@ -517,6 +532,28 @@ async function acceptHandover(bookingId, ownerId, { endOdometer, ratePerKm }) {
   return booking;
 }
 
+// Change booking status
+const updateBookingStatus = async (id, status) => {
+  const allowedStatuses = ["completed", "confirmed", "ongoing", "pending", "cancelled"];
+
+  if (!allowedStatuses.includes(status)) {
+    throw new Error("Invalid status value");
+  }
+
+  const booking = await Booking.findByIdAndUpdate(
+    id,
+    { bookingStatus: status }, 
+    { new: true }
+  );
+
+  if (!booking) {
+    throw new Error("Booking not found");
+  }
+
+  return booking;
+};
+
+
 
 module.exports = {
   createBooking,
@@ -535,5 +572,6 @@ module.exports = {
   confirmBooking,
   requestHandover,
   acceptHandover,
-  getOwnerContactDetails, // ✅ added
+  getOwnerContactDetails, 
+  updateBookingStatus,
 };

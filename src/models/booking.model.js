@@ -72,7 +72,7 @@ bookingSchema.pre('save', async function(next) {
     }
 
     const newStatus = this.bookingStatus;
-    const message = `Booking ${this.bookingCode}: status has been updated from '${prevStatus}' to '${newStatus}'`;
+    const message = `Your Booking ${this.bookingCode}: status has been updated from '${prevStatus}' to '${newStatus}'`;
 
     try {
       await createAlert({

@@ -17,17 +17,25 @@ router.use("/", vehicleBookingCountRoutes);
 
 // ---------------- Owner Routes ----------------
 
-// Add Vehicle (with multiple images)
+// Add Vehicle (no images required initially)
 router.post(
   "/",
   authMiddleware,
   roleMiddleware("owner"),
+  vehicleController.addVehicle
+);
+
+// Upload/Update Vehicle Images
+router.put(
+  "/:id/images",
+  authMiddleware,
+  roleMiddleware("owner"),
   (req, res, next) => {
-    req.uploadType = "vehicle"; // important!
+    req.uploadType = "vehicle"; // used in multer middleware
     next();
   },
-  uploadMiddleware.array("images", 5), // handle multiple images
-  vehicleController.addVehicle
+  uploadMiddleware.array("images", 5), // multiple images
+  vehicleController.updateVehicleImagesOnly
 );
 
 // Get Owner Vehicles
@@ -54,28 +62,7 @@ router.put(
   vehicleController.updateVehicle
 );
 
-// Update Vehicle Images Only (Owner)
-router.put(
-  "/:id/images",
-  authMiddleware,
-  roleMiddleware("owner"),
-  (req, res, next) => {
-    req.uploadType = "vehicle";
-    next();
-  },
-  uploadMiddleware.array("images", 5), // handle multiple images
-  vehicleController.updateVehicleImagesOnly
-);
-
-// Update Vehicle Status (Owner)
-router.put(
-  "/:id/status",
-  authMiddleware,
-  roleMiddleware("owner"),
-  vehicleController.updateVehicleStatus
-);
-
-// Delete Vehicle (Owner)
+// Delete Vehicle
 router.delete(
   "/:id",
   authMiddleware,

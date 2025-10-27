@@ -1,6 +1,7 @@
 // models/damageReport.model.js
 const mongoose = require('mongoose');
 const { nanoid } = require('nanoid');
+const { createAlert } = require('../services/alert.service');
 
 // Realistic damage types used by rental platforms
 const DAMAGE_TYPES = [
@@ -79,6 +80,16 @@ const damageReportSchema = new mongoose.Schema({
   }
 }, {
   timestamps: false
+});
+
+damageReportSchema.post('save', async function (doc) {
+      await createAlert({
+        bookingId: doc.bookingId,
+        vehicleId: doc.vehicleId,
+        customerId: doc.customerId,
+        damageId: doc._id, // ✅ Include damageId
+        message: `Your damage report (ID: ${doc.reportID}) has been submitted successfully.`
+      });
 });
 
 damageReportSchema.index({ bookingId: 1 });

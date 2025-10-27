@@ -58,21 +58,21 @@ bookingSchema.pre('validate', function(next) {
 
 // Middleware to trigger alert when bookingStatus changes
 bookingSchema.pre('save', async function(next) {
-  if (this.isModified('bookingStatus')) {
-    let prevStatus = 'none';
+  // Only run if bookingStatus was modified AND this is NOT a new document
+  if (!this.isNew && this.isModified('bookingStatus')) {
+    let prevStatus = 'pending'; // default previous status
 
-    // Fetch previous booking from DB only if this is not a new document
-    if (!this.isNew) {
-      try {
-        const original = await this.constructor.findById(this._id).lean();
-        if (original) prevStatus = original.bookingStatus;
-      } catch (err) {
-        console.error("Failed to fetch previous booking status:", err.message);
+    try {
+      const original = await this.constructor.findById(this._id).lean();
+      if (original && original.bookingStatus) {
+        prevStatus = original.bookingStatus;
       }
+    } catch (err) {
+      console.error("Failed to fetch previous booking status:", err.message);
     }
 
     const newStatus = this.bookingStatus;
-    const message = `Your Booking ${this.bookingCode}: status has been updated from '${prevStatus}' to '${newStatus}'`;
+    const message = `Booking ${this.bookingCode}: status has been updated from '${prevStatus}' to '${newStatus}'`;
 
     try {
       await createAlert({
@@ -87,6 +87,7 @@ bookingSchema.pre('save', async function(next) {
   }
   next();
 });
+
 
 
 module.exports = mongoose.model("Booking", bookingSchema);

@@ -19,12 +19,20 @@ const vehicleSchema = new mongoose.Schema({
   images: { type: [String], },
 }, { timestamps: true });
 
-vehicleSchema.post("save", async function (doc) {
-      await createAlert({
-        vehicleId: doc._id,
-        customerId: doc.ownerId,
-        message: `Vehicle "${doc.title}" (Code: ${doc.vehicleCode}) has been added successfully.`,
-      });
+vehicleSchema.pre("save", function (next) {
+  this._wasNew = this.isNew; // mark if it's a new document
+  next();
 });
+
+vehicleSchema.post("save", async function (doc) {
+  if (this._wasNew) {
+    await createAlert({
+      vehicleId: doc._id,
+      customerId: doc.ownerId,
+      message: `Vehicle "${doc.title}" (Code: ${doc.vehicleCode}) has been added successfully.`,
+    });
+  }
+});
+
 
 module.exports = mongoose.model("Vehicle", vehicleSchema);

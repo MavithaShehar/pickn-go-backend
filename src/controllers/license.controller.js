@@ -244,3 +244,49 @@ exports.viewAllLicenses = async (req, res) => {
   }
 };
 
+// ================================
+// View All Licenses (Admin) - Paginated
+// ================================
+exports.viewAllLicensesPaginated = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const { page = 1, limit = 5 } = req.query; // default page 1, limit 5
+    const paginate = require("../utils/paginate");
+    const RentDocument = require("../models/rentDocument.model");
+
+    const filter = { documentType: "license" };
+    const populateOptions = { path: "userId", select: "fullName email role" };
+
+    // Use your paginate util
+    const result = await paginate(RentDocument, parseInt(page), parseInt(limit), filter, populateOptions);
+
+    // Format data for output
+    const formattedDocs = result.data.map((doc) => ({
+      documentId: doc._id,
+      userId: doc.userId?._id,
+      userName: doc.userId?.fullName || "N/A",
+      email: doc.userId?.email || "N/A",
+      role: doc.userId?.role || "N/A",
+      expireDate: doc.expireDate,
+      status: doc.documents?.status || "pending",
+      verified: doc.documentVerifiedStatus,
+      verifiedBy: doc.verifiedBy,
+      verifiedAt: doc.verifiedAt,
+      createdAt: doc.createdAt,
+    }));
+
+    res.status(200).json({
+      message: "Paginated license documents retrieved successfully",
+      currentPage: result.currentPage,
+      totalPages: result.totalPages,
+      totalDocuments: result.totalDocuments,
+      licenses: formattedDocs,
+    });
+  } catch (err) {
+    console.error("Paginated View All Licenses Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

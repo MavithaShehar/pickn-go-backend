@@ -376,6 +376,17 @@ const getUnverifiedUsers = async (req, res, next) => {
     next(err);
   }
 };
+// ---------------- Get Verified Users ----------------
+const getVerifiedUsers = async (req, res, next) => {
+  try {
+    const users = await User.find({ verificationStatus: true })
+      .select("-password -resetOTP -resetOTPExpires");
+    res.json(users);
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 module.exports = {
   registerUser,
@@ -389,6 +400,7 @@ module.exports = {
   adminVerifyUser,
   adminSuspendUser,
   getUnverifiedUsers,
+  getVerifiedUsers,
   getAllUsers,
   updateAvatar,
 };

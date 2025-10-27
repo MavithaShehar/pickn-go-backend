@@ -243,7 +243,25 @@ exports.getConfirmedBookings = async (req, res) => {
 };
 
 
+// ================================
+// PATCH: Update Booking Status
+// ================================
+exports.updateBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
+    const allowedStatuses = ["completed", "confirmed", "ongoing", "pending", "cancel"];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
 
-
-
+    const updatedBooking = await bookingService.updateBookingStatus(id, status);
+    res.status(200).json({
+      message: `Booking status updated to '${status}' successfully`,
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};

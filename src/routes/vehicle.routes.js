@@ -100,6 +100,12 @@ router.get(
   roleMiddleware("admin"),
   vehicleController.getAllUnvarifiedVehicles
 );
+router.get(
+  "/admin/verified",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.getAllVerifiedVehicles
+);
 
 // this route is for admin to verify vehicle
 router.patch(

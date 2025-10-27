@@ -11,7 +11,7 @@ const ensureVerifiedOwner = (req, res) => {
   return true;
 };
 
-// Add new vehicle (Supports both Base64 and file upload)
+// Add new vehicle (✅ No images required now)
 exports.addVehicle = async (req, res) => {
   try {
     if (req.user.role === "customer") {
@@ -21,32 +21,30 @@ exports.addVehicle = async (req, res) => {
 
     if (!ensureVerifiedOwner(req, res)) return;
 
-    // ✅ Check for both Base64 and file upload
-    if ((!req.body.images || req.body.images.length === 0) && (!req.files || req.files.length === 0)) {
-      return res
-        .status(400)
-        .json({ message: "At least one vehicle image is required" });
-    }
-
+    // ✅ Allow creating vehicle WITHOUT images
     let images = [];
 
-    // ✅ If files are uploaded (form-data), use Base64 from middleware
-    if (req.files && req.files.length > 0) {
-      images = req.body.images; // ✅ Base64 already in req.body.images
-    } 
-    // ✅ If Base64 images are sent in body
-    else if (req.body.images && req.body.images.length > 0) {
+    if (req.body.images && req.body.images.length > 0) {
       images = req.body.images;
+    } else if (req.files && req.files.length > 0) {
+      images = req.body.images || [];
     }
 
     const vehicleData = { ...req.body, images };
 
     const vehicle = await vehicleService.createVehicle(req.user.id, vehicleData);
-    res.status(201).json(vehicle);
+
+    res.status(201).json({
+      success: true,
+      message: "Vehicle created successfully",
+      vehicle
+    });
+
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
+
 
 // Get all vehicles of logged-in owner
 exports.getVehicles = async (req, res) => {
@@ -101,32 +99,32 @@ exports.updateVehicle = async (req, res) => {
   }
 };
 
-// Update only vehicle images (Base64 version)
+// Update only vehicle images
 exports.updateVehicleImagesOnly = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    if (!req.body.images || req.body.images.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "At least one Base64 image is required" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No images uploaded" });
     }
 
-    const newImages = req.body.images; // overwrite old images
+    // Map uploaded files to accessible paths
+    const imagePaths = req.files.map(file => `/uploads/vehicle/${file.filename}`);
 
     const result = await vehicleService.updateVehicle(
       req.user.id,
       req.params.id,
-      { images: newImages }
+      { images: imagePaths }
     );
 
-    if (!result.success)
+    if (!result.success) {
       return res.status(404).json({ message: result.message });
+    }
 
     res.json({
       success: true,
       message: "Vehicle images updated successfully",
-      data: result.data,
+      vehicle: result.data,
     });
   } catch (error) {
     res.status(400).json({ message: error.message });

@@ -31,75 +31,61 @@ const bookingSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+// ✅ Detect new booking before save
 bookingSchema.pre("save", function (next) {
-  // store original document (only when not new)
-  if (!this.isNew) {
-    // Use toObject({ depopulate: true }) to avoid populated refs
-    this._original = this.toObject({ depopulate: true });
-  }
-  // preserve new-flag for creation alert
   this._wasNew = this.isNew;
   next();
 });
 
+// ✅ Run alert only after save if it was newly created
 bookingSchema.post("save", async function (doc) {
-  // creation alert (only for newly created docs)
   if (this._wasNew) {
     await createAlert({
       bookingId: doc._id,
       customerId: doc.customerId,
       message: `Booking ${doc.bookingCode || doc._id} created successfully.`,
     });
-    return;
-  }
-
-  // If this was an update via save(), check status change
-  if (this._original) {
-    const oldStatus = this._original.bookingStatus;
-    const newStatus = doc.bookingStatus;
-    if (oldStatus !== newStatus) {
-      await createAlert({
-        bookingId: doc._id,
-        customerId: doc.customerId,
-        message: `Booking ${doc.bookingCode || doc._id} status changed from '${oldStatus}' to '${newStatus}'.`,
-      });
-    }
   }
 });
 
-// --- findOneAndUpdate-style detection (covers findByIdAndUpdate & findOneAndUpdate) ---
-bookingSchema.pre("findOneAndUpdate", async function (next) {
-  // store the old booking doc so we can compare after update
-  this._oldBooking = await this.model.findOne(this.getQuery()).lean();
+// Capture previous status before saving
+bookingSchema.pre('validate', function(next) {
+  if (!this.isNew) {
+    this.$__.priorBookingStatus = this.get('bookingStatus');
+  }
   next();
 });
 
-bookingSchema.post("findOneAndUpdate", async function (doc) {
-  // If caller didn't return updated doc (no { new: true }), doc may be the pre-update doc.
-  // We still can inspect the update object.
-  const oldBooking = this._oldBooking;
-  if (!oldBooking) return;
+// Middleware to trigger alert when bookingStatus changes
+bookingSchema.pre('save', async function(next) {
+  if (this.isModified('bookingStatus')) {
+    let prevStatus = 'none';
 
-  const oldStatus = oldBooking.bookingStatus;
+    // Fetch previous booking from DB only if this is not a new document
+    if (!this.isNew) {
+      try {
+        const original = await this.constructor.findById(this._id).lean();
+        if (original) prevStatus = original.bookingStatus;
+      } catch (err) {
+        console.error("Failed to fetch previous booking status:", err.message);
+      }
+    }
 
-  // Extract new status from update object, or fallback to returned doc
-  const update = this.getUpdate ? this.getUpdate() : {};
-  const newStatus =
-      (update && (update.bookingStatus ?? update.$set?.bookingStatus)) ??
-      (doc && doc.bookingStatus);
+    const newStatus = this.bookingStatus;
+    const message = `Your Booking ${this.bookingCode}: status has been updated from '${prevStatus}' to '${newStatus}'`;
 
-  if (newStatus !== undefined && oldStatus !== newStatus) {
-    // use the oldBooking._id (query) or doc._id (if returned)
-    const bookingId = doc ? doc._id : oldBooking._id;
-    const customerId = doc ? doc.customerId : oldBooking.customerId;
-    const bookingCode = doc ? doc.bookingCode : oldBooking.bookingCode;
-
-    await createAlert({
-      bookingId,
-      customerId,
-      message: `Booking ${bookingCode || bookingId} status changed from '${oldStatus}' to '${newStatus}'.`,
-    });
+    try {
+      await createAlert({
+        bookingId: this._id,
+        customerId: this.customerId,
+        vehicleId: this.vehicleId,
+        message
+      });
+    } catch (err) {
+      console.error("Failed to create alert:", err.message);
+    }
   }
+  next();
 });
 
 

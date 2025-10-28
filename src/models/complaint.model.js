@@ -1,6 +1,7 @@
 // models/complaint.model.js
 const mongoose = require('mongoose');
 const { nanoid } = require('nanoid');
+const { createAlert } = require('../services/alert.service');
 
 const complaintSchema = new mongoose.Schema({
   complaintID: {
@@ -75,6 +76,15 @@ complaintSchema.virtual('userEmail', {
   foreignField: '_id',
   justOne: true,
   options: { select: 'email' }
+});
+
+complaintSchema.post('save', async function (doc) {
+
+      await createAlert({
+        customerId: doc.user, // alert for the user who submitted the complaint
+        complaintId: doc._id,
+        message: `Your complaint "${doc.title}" (ID: ${doc.complaintID}) has been submitted successfully.`
+      })
 });
 
 complaintSchema.set('toJSON', { virtuals: true });

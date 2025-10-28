@@ -25,11 +25,25 @@ router.patch(
   DamageReportController.updateDamageReport
 );
 
-router.get('/my', authMiddleware, roleMiddleware('customer'), DamageReportController.getMyReports);
-router.delete('/:id', authMiddleware, roleMiddleware('customer'), DamageReportController.deleteReport);
+router.get('/my', authMiddleware,roleMiddleware( 'customer'), DamageReportController.getMyReports);
+router.delete('/:id', authMiddleware,roleMiddleware( 'customer'), DamageReportController.deleteReport);
 
 // Admin/Owner routes
 router.get('/', authMiddleware, roleMiddleware('admin'), DamageReportController.getAllReports);
+// ✅ New - Owner paginated route
+router.get(
+  "/owner/paginated",
+  authMiddleware,
+  roleMiddleware("owner"),
+  DamageReportController.getOwnerReportsPaginated
+);
+// ✅ New - Admin paginated route
+router.get(
+  "/admin/paginated",
+  authMiddleware,
+  roleMiddleware("admin"),
+  DamageReportController.getAllReportsPaginated
+);
 router.patch('/:id/status', authMiddleware, roleMiddleware('admin'), DamageReportController.updateReportStatus);
 router.get(
   '/owner',

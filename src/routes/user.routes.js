@@ -11,8 +11,12 @@ const {
   adminVerifyUser,
   adminSuspendUser,
   getUnverifiedUsers,
+  getVerifiedUsers,
   getAllUsers,
   updateAvatar,
+  getPaginatedAllUsers,
+  getPaginatedVerifiedUsers,
+  getPaginatedUnverifiedUsers
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -73,6 +77,9 @@ router.post(
   registerUser
 );
 
+
+
+
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", validateResetPassword, handleValidation, resetPassword);
@@ -94,11 +101,35 @@ router.delete("/profile", authMiddleware, deleteProfile);
 // Update avatar separately
 router.put("/profile/avatar", authMiddleware, upload.single("avatar"), handleUploadErrors, updateAvatar);
 
+// Admin Paginated Routes
+router.get(
+  "/paginated",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getPaginatedAllUsers
+);
+
+router.get(
+  "/verified/paginated",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getPaginatedVerifiedUsers
+);
+
+router.get(
+  "/unverified/paginated",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getPaginatedUnverifiedUsers
+);
 // ---------------- Admin Routes ----------------
 router.get("/alluser", authMiddleware, roleMiddleware("admin"), getAllUsers);
 router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
 router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyUser);
 router.patch("/:id/suspend", authMiddleware, roleMiddleware("admin"), adminSuspendUser);
 router.get("/unverified", authMiddleware, roleMiddleware("admin"), getUnverifiedUsers);
+router.get("/verified", authMiddleware, roleMiddleware("admin"), getVerifiedUsers);
+// ================================
+
 
 module.exports = router;

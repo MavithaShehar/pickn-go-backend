@@ -140,6 +140,66 @@ class ComplaintController {
       });
     }
   }
-}
+
+
+  // Get paginated complaints for customer
+  static async getMyComplaintsPaginated(req, res) {
+    try {
+      const userId = req.user._id;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const complaints = await ComplaintService.getComplaintsByUserPaginated(userId, page, limit);
+
+      res.json({
+        success: true,
+        message: "Your complaints (paginated) fetched",
+        complaints
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // Get paginated complaints for admin
+  static async getAllComplaintsPaginated(req, res) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const complaints = await ComplaintService.getAllComplaintsPaginated(page, limit);
+
+      res.json({
+        success: true,
+        message: "All complaints (paginated) fetched",
+        complaints
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // Get paginated complaints by status for admin
+  static async getComplaintsByStatusPaginated(req, res) {
+    try {
+      const { status } = req.params;
+      if (!VALID_STATUSES.includes(status)) {
+        return res.status(400).json({ success: false, message: "Invalid status" });
+      }
+
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const complaints = await ComplaintService.getComplaintsByStatusPaginated(status, page, limit);
+
+      res.json({
+        success: true,
+        message: `Complaints with status "${status}" (paginated) fetched`,
+        complaints
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }}
 
 module.exports = ComplaintController;

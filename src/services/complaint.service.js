@@ -187,6 +187,35 @@ class ComplaintService {
       throw new Error(`Failed to delete complaint: ${error.message}`);
     }
   }
-}
+
+static async getComplaintsByUserPaginated(userId, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const complaints = await Complaint.find({ user: userId })
+      .populate('user', 'firstname email')
+      .sort({ dateCreated: -1 })
+      .skip(skip)
+      .limit(limit);
+    return complaints;
+  }
+
+  static async getAllComplaintsPaginated(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const complaints = await Complaint.find()
+      .populate('user', 'firstname email')
+      .sort({ dateCreated: -1 })
+      .skip(skip)
+      .limit(limit);
+    return complaints;
+  }
+
+  static async getComplaintsByStatusPaginated(status, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const complaints = await Complaint.find({ status })
+      .populate('user', 'firstname email')
+      .sort({ dateCreated: -1 })
+      .skip(skip)
+      .limit(limit);
+    return complaints;
+  }}
 
 module.exports = ComplaintService;

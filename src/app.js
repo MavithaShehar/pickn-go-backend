@@ -24,7 +24,7 @@ const damageReportRoutes = require('./routes/damageReport.routes');
 const imageRoutes = require('./routes/image.routes'); // ✅ image routes
 const contactRoutes = require("./routes/contactUs.routes");
 const notificationRoutes = require("./routes/notification.routes");
-
+const alertRoutes = require("./routes/alert.routes");
 const app = express();
 
 // ------------------ Middlewares ------------------
@@ -55,17 +55,11 @@ app.use("/api/licenses", licenseRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/vehicle-bookings", vehicleBookingCountRoutes);
 app.use("/api/damage-reports", damageReportRoutes);
-
-// ------------------ Image Upload Routes ------------------
-// Mount at /api so your routes are:
-// PUT /api/profile/:userId/upload-photo
-// POST /api/vehicle/:vehicleId/upload-images
-app.use('/api', imageRoutes);
-
-app.use("/api/notification", notificationRoutes);
-
-// ------------------ Error Handling ------------------
-// Not found handler
+app.use("/api/users/contact", contactRoutes);
+app.use('/api', imageRoutes); // now uses /api/gallery
+app.use('/api/notification', notificationRoutes);
+app.use(express.json({ limit: '10mb' })); 
+// Not Found Handler
 app.use(notFoundMiddleware);
 
 // Global error handler

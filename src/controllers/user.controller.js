@@ -4,6 +4,8 @@ const User = require("../models/user.model");
 const generateToken = require("../utils/generateToken");
 const generateUniqueCode = require("../utils/generateUniqueCode");
 const sendEmail = require("../utils/sendEmail");
+const paginate = require("../utils/paginate");
+
 
 // ---------------- Register ----------------
 const registerUser = async (req, res, next) => {
@@ -365,6 +367,74 @@ const getUnverifiedUsers = async (req, res, next) => {
     next(err);
   }
 };
+// ---------------- Get Verified Users ----------------
+const getVerifiedUsers = async (req, res, next) => {
+  try {
+    const users = await User.find({ verificationStatus: true })
+      .select("-password -resetOTP -resetOTPExpires");
+    res.json(users);
+  } catch (err) {
+    next(err);
+  }
+};
+// Admin Paginated Routes
+// ================================
+
+// Pagination Controllers
+// ==========================
+
+// Get all users (paginated)
+const getPaginatedAllUsers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+
+    const data = await paginate(User, page, limit, {});
+    res.status(200).json({
+      success: true,
+      message: "Paginated users fetched successfully",
+      ...data,
+    });
+  } catch (error) {
+    console.error("Pagination error:", error);
+    res.status(500).json({ message: "Server error while fetching users" });
+  }
+};
+
+// Get verified users (paginated)
+const getPaginatedVerifiedUsers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+
+    const data = await paginate(User, page, limit, { verificationStatus: true });
+    res.status(200).json({
+      success: true,
+      message: "Paginated verified users fetched successfully",
+      ...data,
+    });
+  } catch (error) {
+    console.error("Pagination error:", error);
+    res.status(500).json({ message: "Server error while fetching verified users" });
+  }
+};
+// Get unverified users (paginated)
+const getPaginatedUnverifiedUsers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+
+    const data = await paginate(User, page, limit, { verificationStatus: false });
+    res.status(200).json({
+      success: true,
+      message: "Paginated unverified users fetched successfully",
+      ...data,
+    });
+  } catch (error) {
+    console.error("Pagination error:", error);
+    res.status(500).json({ message: "Server error while fetching unverified users" });
+  }
+};
 
 module.exports = {
   registerUser,
@@ -378,6 +448,10 @@ module.exports = {
   adminVerifyUser,
   adminSuspendUser,
   getUnverifiedUsers,
+  getVerifiedUsers,
   getAllUsers,
   updateAvatar,
+  getPaginatedAllUsers,
+  getPaginatedUnverifiedUsers,
+  getPaginatedVerifiedUsers,
 };

@@ -8,16 +8,16 @@ const upload = require('../middlewares/uploadMiddleware'); // ✅ multer instanc
 // All routes require authentication
 router.use(authMiddleware);
 
-// Create complaint: accept up to 5 image files via form-data
+// ✅ Create complaint: accept up to 5 image files via form-data
 router.post(
   '/',
   roleMiddleware("customer"),
-  (req, res, next) => { req.uploadType = "complaint"; next(); }, // optional folder type
-  upload.array('images', 5), // ✅ multer array directly
+  (req, res, next) => { req.uploadType = "complaint"; next(); },
+  upload.array('images', 5),
   ComplaintController.createComplaint
 );
 
-// Edit complaint: also accept image uploads
+// ✅ Edit complaint: also accept image uploads
 router.put(
   '/:id',
   roleMiddleware("customer"),
@@ -26,12 +26,24 @@ router.put(
   ComplaintController.editComplaint
 );
 
-// Other routes (no file upload needed)
+// ✅ Customer routes
 router.get('/my-complaints', roleMiddleware("customer"), ComplaintController.getMyComplaints);
+
+// ✅ NEW: Customer paginated complaints (merged from branch)
+router.get('/my-complaints/paginated', roleMiddleware("customer"), ComplaintController.getMyComplaintsPaginated);
+
+// ✅ Admin routes
 router.get('/status/:status', roleMiddleware("admin"), ComplaintController.getComplaintsByStatus);
 router.get('/:id', roleMiddleware("admin", "customer"), ComplaintController.getComplaintById);
 router.patch('/:id/status', roleMiddleware("admin"), ComplaintController.updateComplaintStatus);
+router.get('/paginated', roleMiddleware("admin"), ComplaintController.getAllComplaintsPaginated);
+router.get('/status/:status/paginated', roleMiddleware("admin"), ComplaintController.getComplaintsByStatusPaginated);
 router.get('/', roleMiddleware("admin"), ComplaintController.getAllComplaints);
+
+// ✅ Shared
+router.get('/:id', roleMiddleware("admin", "customer"), ComplaintController.getComplaintById);
+
+// ✅ Delete only customer-owned complaints
 router.delete('/:id', roleMiddleware("customer"), ComplaintController.deleteComplaint);
 
 module.exports = router;

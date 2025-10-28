@@ -1,7 +1,7 @@
 // routes/damageReport.routes.js
 const express = require('express');
 const router = express.Router();
-const uploadMiddleware = require('../middlewares/uploadMiddleware');
+const upload = require('../middlewares/uploadMiddleware'); // ✅ multer instance
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 const DamageReportController = require('../controllers/damgeReport.controller');
@@ -11,26 +11,20 @@ router.post(
   '/',
   authMiddleware,
   roleMiddleware('customer'),
-  uploadMiddleware.uploadArray('images', 5),
+  (req, res, next) => { req.uploadType = 'damage'; next(); }, // optional folder type
+  upload.array('images', 5), // ✅ use multer array directly
   DamageReportController.createDamageReport
 );
-
-
 
 router.patch(
   '/:id',
   authMiddleware,
   roleMiddleware('customer'),
-  uploadMiddleware.uploadArray('images', 5),
+  (req, res, next) => { req.uploadType = 'damage'; next(); },
+  upload.array('images', 5),
   DamageReportController.updateDamageReport
 );
-// ✅ New - Customer paginated route
-router.get(
-  "/my/paginated",
-  authMiddleware,
-  roleMiddleware("customer"),
-  DamageReportController.getMyReportsPaginated
-);
+
 router.get('/my', authMiddleware,roleMiddleware( 'customer'), DamageReportController.getMyReports);
 router.delete('/:id', authMiddleware,roleMiddleware( 'customer'), DamageReportController.deleteReport);
 
@@ -57,6 +51,5 @@ router.get(
   roleMiddleware('owner'),
   DamageReportController.getOwnerDamageReports 
 );
-
 
 module.exports = router;

@@ -3,40 +3,56 @@ const vehicleController = require("../controllers/vehicle.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 const vehicleBookingCountRoutes = require("./vehicleBookingCount.routes");
-const uploadMiddleware = require("../middlewares/uploadMiddleware"); // ✅ add this
+const uploadMiddleware = require("../middlewares/uploadMiddleware");
 
 const router = express.Router();
 
-// This MUST come first and NOT have authMiddleware
+// ---------------- Public Routes ----------------
+
+// Get all available vehicles
 router.get("/available", vehicleController.getAvailableVehicles);
 
+// Get available vehicles paginated
 router.get(
   "/available/paginated",
   vehicleController.getAvailableVehiclesPaginated
 );
 
-// ---------------- Booking Count Routes ----------------
-// Only include authMiddleware if needed inside that route
+// Booking Count Routes
 router.use("/", vehicleBookingCountRoutes);
 
-// Owner routes
+// ---------------- Owner Routes ----------------
+
+// Add Vehicle (No images initially)
 router.post(
   "/",
   authMiddleware,
   roleMiddleware("owner"),
-  uploadMiddleware.uploadArray("images", 5), // ✅ handle multiple images
-  uploadMiddleware.handleUploadErrors,
-  uploadMiddleware.convertFilesToBase64,     // ✅ convert uploaded files to Base64
   vehicleController.addVehicle
 );
-// OWNER PAGINATION
-// =========================
+
+// Upload Vehicle Images
+router.put(
+  "/:id/images",
+  authMiddleware,
+  roleMiddleware("owner"),
+  (req, res, next) => {
+    req.uploadType = "vehicle";
+    next();
+  },
+  uploadMiddleware.array("images", 5),
+  vehicleController.updateVehicleImagesOnly
+);
+
+// Owner Vehicles (Paginated)
 router.get(
   "/owner/vehicle/paginated",
   authMiddleware,
   roleMiddleware("owner"),
   vehicleController.getVehiclesPaginated
 );
+
+// Owner Vehicles - All
 router.get(
   "/owner/vehicle",
   authMiddleware,
@@ -44,6 +60,7 @@ router.get(
   vehicleController.getVehicles
 );
 
+// Get Vehicle by ID (Owner)
 router.get(
   "/:id",
   authMiddleware,
@@ -51,6 +68,7 @@ router.get(
   vehicleController.getVehicleById
 );
 
+// Update Vehicle
 router.put(
   "/:id",
   authMiddleware,
@@ -58,23 +76,7 @@ router.put(
   vehicleController.updateVehicle
 );
 
-router.put(
-  "/:id/images",
-  authMiddleware,
-  roleMiddleware("owner"),
-  uploadMiddleware.uploadArray("images", 5), // ✅ handle multiple images
-  uploadMiddleware.handleUploadErrors,
-  uploadMiddleware.convertFilesToBase64,     // ✅ convert uploaded files to Base64
-  vehicleController.updateVehicleImagesOnly
-);
-
-router.put(
-  "/:id/status",
-  authMiddleware,
-  roleMiddleware("owner"),
-  vehicleController.updateVehicleStatus
-);
-
+// Delete Vehicle
 router.delete(
   "/:id",
   authMiddleware,
@@ -82,30 +84,27 @@ router.delete(
   vehicleController.deleteVehicle
 );
 
-// Customer routes
+// ---------------- Customer Routes ----------------
 
-// CUSTOMER PAGINATION
-// CUSTOMER: View available vehicles by vehicleId (Paginated)
-// ===============================
+// Customer Paginated: Available vehicles by owner
 router.get(
   "/available/by-owner/:vehicleId",
   authMiddleware,
-  roleMiddleware("customer"), // only customers can access
+  roleMiddleware("customer"),
   vehicleController.getPaginatedAvailableVehiclesByOwner
 );
 
-// Get available vehicles by a specific owner - getting access denied error
+// Available vehicles by owner
 router.get(
   "/owner/:id/available",
   authMiddleware,
-  roleMiddleware("customer"), 
+  roleMiddleware("customer"),
   vehicleController.getAvailableVehiclesByOwner
 );
 
+// ---------------- Admin Routes ----------------
 
-
-// ADMIN PAGINATION
-// =========================
+// Admin Paginated Routes
 router.get(
   "/admin/available/paginated",
   authMiddleware,
@@ -127,7 +126,7 @@ router.get(
   vehicleController.getAllUnverifiedVehiclesPaginated
 );
 
-// Admin routes
+// Admin view all
 router.get(
   "/admin/available",
   authMiddleware,
@@ -148,6 +147,7 @@ router.get(
   roleMiddleware("admin"),
   vehicleController.getAllUnvarifiedVehicles
 );
+
 router.get(
   "/admin/verified",
   authMiddleware,
@@ -155,7 +155,7 @@ router.get(
   vehicleController.getAllVerifiedVehicles
 );
 
-// this route is for admin to verify vehicle
+// Admin verify / update verification
 router.patch(
   "/:id/verify",
   authMiddleware,
@@ -163,6 +163,7 @@ router.patch(
   vehicleController.adminVerifyVehicle
 );
 
+// Admin update verification status
 router.put(
   "/:id/verification",
   authMiddleware,

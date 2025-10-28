@@ -2,7 +2,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// Ensure folder exists
+// Ensure folder exists before upload
 const ensureFolderExists = (folderPath) => {
   if (!fs.existsSync(folderPath)) {
     fs.mkdirSync(folderPath, { recursive: true });
@@ -22,16 +22,18 @@ const storage = multer.diskStorage({
     ensureFolderExists(folderPath);
     cb(null, folderPath);
   },
+
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + file.originalname.replace(/\s+/g, "_");
+    const uniqueName =
+      Date.now() + "-" + file.originalname.replace(/\s+/g, "_");
     cb(null, uniqueName);
   },
 });
 
-// Multer instance
+// Multer configuration
 const upload = multer({
   storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+  limits: { fileSize: 20 * 1024 * 1024 }, // ✅ 20MB per file
   fileFilter: (req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowed.includes(file.mimetype)) {
@@ -42,4 +44,5 @@ const upload = multer({
   },
 });
 
+// ✅ Export upload middleware
 module.exports = upload;

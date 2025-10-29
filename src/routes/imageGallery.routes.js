@@ -41,7 +41,7 @@ router.put(
 );
 
 // ✅ GET /api/images/:id — Get single image by ID
-router.get('/images/:id', getImageById);
+router.get('/gallaryimages/:id', getImageById);
 
 // DELETE /api/images/:id — Delete specific image by ObjectId
 router.delete('/images/:id',

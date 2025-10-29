@@ -3,64 +3,29 @@ const Complaint = require('../models/complaint.model');
 
 class ComplaintService {
 
-  // ⭐ CHANGED: Validate Base64 images instead of multer files
-  static validateImages(images) {
-    // Check if images is an array
-    if (!Array.isArray(images)) {
-      return { valid: false, message: 'Images must be an array' };
+  // Create new complaint using uploaded files
+// ✅ services/complaint.service.js
+static async createComplaint(complaintData) {
+  try {
+    if (!complaintData.title || !complaintData.description) {
+      throw new Error("Title & description required");
     }
 
-    // Check maximum number of images
-    if (images.length > 5) {
-      return { valid: false, message: 'Maximum 5 images allowed' };
-    }
+    // ✅ Use images passed from controller already mapped from req.files
+    const complaint = new Complaint({
+      title: complaintData.title,
+      description: complaintData.description,
+      images: complaintData.images || [],  // << HERE ✅
+      user: complaintData.user
+    });
 
-    // Validate Base64 format and image type
-    const base64ImageRegex = /^data:image\/(jpeg|jpg|png);base64,/;
-    
-    for (let image of images) {
-      // Check if image is a string
-      if (typeof image !== 'string') {
-        return { valid: false, message: 'Each image must be a Base64 string' };
-      }
-
-      // Check if image has correct Base64 format
-      if (!base64ImageRegex.test(image)) {
-        return { 
-          valid: false, 
-          message: 'Only JPEG, PNG images are allowed in Base64 format (data:image/jpeg;base64,... or data:image/png;base64,...)' 
-        };
-      }
-
-      // Check Base64 string size (approximately 10MB limit per image)
-      const sizeInBytes = (image.length * 3) / 4;
-      const sizeInMB = sizeInBytes / (1024 * 1024);
-      if (sizeInMB > 10) {
-        return { valid: false, message: 'Each image must be less than 10MB' };
-      }
-    }
-
-    return { valid: true, message: 'Images are valid' };
+    await complaint.save();
+    return complaint;
+  } catch (err) {
+    throw new Error("Error creating complaint: " + err.message);
   }
+}
 
-  // ⭐ CHANGED: Create new complaint with Base64 validation
-  static async createComplaint(complaintData) {
-    try {
-      // Validate images if provided
-      if (complaintData.images && complaintData.images.length > 0) {
-        const validation = this.validateImages(complaintData.images);
-        if (!validation.valid) {
-          throw new Error(validation.message);
-        }
-      }
-
-      // Create and save complaint
-      const complaint = new Complaint(complaintData);
-      return await complaint.save();
-    } catch (error) {
-      throw new Error(`Error creating complaint: ${error.message}`);
-    }
-  }
 
   // Get complaints by user ID
   static async getComplaintsByUser(userId) {
@@ -88,9 +53,7 @@ class ComplaintService {
   static async getComplaintById(id) {
     try {
       const complaint = await Complaint.findById(id).populate('user', 'firstname email');
-      if (!complaint) {
-        throw new Error('Complaint not found');
-      }
+      if (!complaint) throw new Error('Complaint not found');
       return complaint;
     } catch (error) {
       throw new Error(`Error fetching complaint: ${error.message}`);
@@ -108,15 +71,13 @@ class ComplaintService {
     }
   }
 
-  // ⭐ CHANGED: Edit complaint - removed file deletion logic
-  static async editComplaint(complaintId, userId, updateData) {
+  // Edit complaint with uploaded files
+  static async editComplaint(complaintId, userId, updateData, files) {
     try {
       // Find the complaint
       const complaint = await Complaint.findById(complaintId);
 
-      if (!complaint) {
-        throw new Error('Complaint not found');
-      }
+      if (!complaint) throw new Error('Complaint not found');
 
       // Check ownership
       if (complaint.user.toString() !== userId.toString()) {
@@ -128,26 +89,18 @@ class ComplaintService {
         throw new Error('Only pending complaints can be edited');
       }
 
-      // ⭐ CHANGED: Validate new Base64 images if provided
-      if (updateData.images && updateData.images.length > 0) {
-        const validation = this.validateImages(updateData.images);
-        if (!validation.valid) {
-          throw new Error(validation.message);
-        }
+      // Use uploaded files instead of Base64
+      if (files?.length) {
+        updateData.images = files.map(file => `/uploads/images/complaints/${file.filename}`);
       }
 
-      // ⭐ REMOVED: No need to delete old image files from filesystem
-      // With Base64, images are stored in database and automatically replaced
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) delete updateData[key];
+      });
 
-      // Update the complaint
       const updatedComplaint = await Complaint.findByIdAndUpdate(
         complaintId,
-        {
-          title: updateData.title || complaint.title,
-          description: updateData.description || complaint.description,
-          images: updateData.images || complaint.images,
-          lastModified: Date.now()
-        },
+        { ...updateData, lastModified: Date.now() },
         { new: true, runValidators: true }
       ).populate('user', 'firstname email');
 
@@ -157,7 +110,7 @@ class ComplaintService {
     }
   }
 
-  // Update complaint status (admin or moderator use)
+  // Update complaint status
   static async updateComplaintStatus(complaintId, status) {
     try {
       return await Complaint.findByIdAndUpdate(
@@ -170,27 +123,20 @@ class ComplaintService {
     }
   }
 
-  // ⭐ CHANGED: Delete complaint - removed file deletion logic
+  // Delete complaint
   static async deleteComplaint(id) {
     try {
       const complaint = await Complaint.findByIdAndDelete(id);
-
-      if (!complaint) {
-        return null;
-      }
-
-      // ⭐ REMOVED: No need to delete image files from filesystem
-      // Base64 images are stored in database and automatically deleted with the document
-
-      return complaint;
+      return complaint || null;
     } catch (error) {
       throw new Error(`Failed to delete complaint: ${error.message}`);
     }
   }
 
-static async getComplaintsByUserPaginated(userId, page = 1, limit = 10) {
+  // Paginated queries
+  static async getComplaintsByUserPaginated(userId, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-    const complaints = await Complaint.find({ user: userId })
+    return await Complaint.find({ user: userId })
       .populate('user', 'firstname email')
       .sort({ dateCreated: -1 })
       .skip(skip)
@@ -200,7 +146,7 @@ static async getComplaintsByUserPaginated(userId, page = 1, limit = 10) {
 
   static async getAllComplaintsPaginated(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-    const complaints = await Complaint.find()
+    return await Complaint.find()
       .populate('user', 'firstname email')
       .sort({ dateCreated: -1 })
       .skip(skip)
@@ -210,12 +156,12 @@ static async getComplaintsByUserPaginated(userId, page = 1, limit = 10) {
 
   static async getComplaintsByStatusPaginated(status, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-    const complaints = await Complaint.find({ status })
+    return await Complaint.find({ status })
       .populate('user', 'firstname email')
       .sort({ dateCreated: -1 })
       .skip(skip)
       .limit(limit);
-    return complaints;
-  }}
+  }
+}
 
 module.exports = ComplaintService;

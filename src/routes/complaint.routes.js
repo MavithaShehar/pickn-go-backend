@@ -3,12 +3,12 @@ const router = express.Router();
 const ComplaintController = require('../controllers/complaint.controller');
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleMiddleware = require("../middlewares/roleMiddleware");
-const upload = require('../middlewares/uploadMiddleware'); // ✅ multer instance
+const upload = require('../middlewares/uploadMiddleware');
 
-// All routes require authentication
+// ✅ All routes require authentication
 router.use(authMiddleware);
 
-// ✅ Create complaint: accept up to 5 image files via form-data
+// ✅ Customer: Create complaint (with images)
 router.post(
   '/',
   roleMiddleware("customer"),
@@ -17,7 +17,7 @@ router.post(
   ComplaintController.createComplaint
 );
 
-// ✅ Edit complaint: also accept image uploads
+// ✅ Customer: Update complaint (with images)
 router.put(
   '/:id',
   roleMiddleware("customer"),
@@ -26,24 +26,67 @@ router.put(
   ComplaintController.editComplaint
 );
 
-// ✅ Customer routes
-router.get('/my-complaints', roleMiddleware("customer"), ComplaintController.getMyComplaints);
+// ✅ Customer: Delete complaint
+router.delete(
+  '/:id',
+  roleMiddleware("customer"),
+  ComplaintController.deleteComplaint
+);
 
-// ✅ NEW: Customer paginated complaints (merged from branch)
-router.get('/my-complaints/paginated', roleMiddleware("customer"), ComplaintController.getMyComplaintsPaginated);
+// ✅ Customer: View own complaints
+router.get(
+  '/my-complaints',
+  roleMiddleware("customer"),
+  ComplaintController.getMyComplaints
+);
 
-// ✅ Admin routes
-router.get('/status/:status', roleMiddleware("admin"), ComplaintController.getComplaintsByStatus);
-router.get('/:id', roleMiddleware("admin", "customer"), ComplaintController.getComplaintById);
-router.patch('/:id/status', roleMiddleware("admin"), ComplaintController.updateComplaintStatus);
-router.get('/paginated', roleMiddleware("admin"), ComplaintController.getAllComplaintsPaginated);
-router.get('/status/:status/paginated', roleMiddleware("admin"), ComplaintController.getComplaintsByStatusPaginated);
-router.get('/', roleMiddleware("admin"), ComplaintController.getAllComplaints);
+// ✅ Customer: Pagination
+router.get(
+  '/my-complaints/paginated',
+  roleMiddleware("customer"),
+  ComplaintController.getMyComplaintsPaginated
+);
 
-// ✅ Shared
-router.get('/:id', roleMiddleware("admin", "customer"), ComplaintController.getComplaintById);
+// ✅ View complaint by ID (customer sees only their own)
+router.get(
+  '/:id',
+  roleMiddleware("admin", "customer"),
+  ComplaintController.getComplaintById
+);
 
-// ✅ Delete only customer-owned complaints
-router.delete('/:id', roleMiddleware("customer"), ComplaintController.deleteComplaint);
+// ✅ Admin: Filtering
+router.get(
+  '/status/:status',
+  roleMiddleware("admin"),
+  ComplaintController.getComplaintsByStatus
+);
+
+// ✅ Admin: Pagination
+router.get(
+  '/paginated',
+  roleMiddleware("admin"),
+  ComplaintController.getAllComplaintsPaginated
+);
+
+// ✅ Admin: Pagination + Filtering
+router.get(
+  '/status/:status/paginated',
+  roleMiddleware("admin"),
+  ComplaintController.getComplaintsByStatusPaginated
+);
+
+// ✅ Admin: Update status
+router.patch(
+  '/:id/status',
+  roleMiddleware("admin"),
+  ComplaintController.updateComplaintStatus
+);
+
+// ✅ Admin: Get all
+router.get(
+  '/',
+  roleMiddleware("admin"),
+  ComplaintController.getAllComplaints
+);
 
 module.exports = router;

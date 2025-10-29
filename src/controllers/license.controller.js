@@ -1,4 +1,11 @@
 const RentDocument = require("../models/rentDocument.model");
+const path = require("path");
+
+// Helper to generate URL from file path
+const generateFileUrl = (req, filePath) => {
+  if (!filePath) return null;
+  return `${req.protocol}://${req.get("host")}/${filePath.replace(/\\/g, "/")}`;
+};
 
 // ================================
 // Upload License (Customer, Owner)
@@ -19,10 +26,8 @@ exports.uploadLicenseToMongo = async (req, res) => {
     const update = {
       expireDate,
       documents: {
-        front: front.buffer,
-        frontType: front.mimetype,
-        back: back.buffer,
-        backType: back.mimetype,
+        front: front.path,
+        back: back.path,
         status: "pending",
       },
       documentVerifiedStatus: false,
@@ -36,6 +41,8 @@ exports.uploadLicenseToMongo = async (req, res) => {
     res.status(200).json({
       message: "License uploaded successfully",
       documentId: document._id,
+      frontUrl: generateFileUrl(req, document.documents.front),
+      backUrl: generateFileUrl(req, document.documents.back),
     });
   } catch (err) {
     console.error("Upload error:", err);
@@ -62,11 +69,9 @@ exports.updateLicenseCustomer = async (req, res) => {
     const update = {
       expireDate,
       documents: {
-        front: front.buffer,
-        frontType: front.mimetype,
-        back: back.buffer,
-        backType: back.mimetype,
-        status: "pending", // reset status when updating
+        front: front.path,
+        back: back.path,
+        status: "pending",
       },
       documentVerifiedStatus: false,
       verifiedBy: null,
@@ -80,6 +85,8 @@ exports.updateLicenseCustomer = async (req, res) => {
     res.status(200).json({
       message: "License updated successfully",
       documentId: document._id,
+      frontUrl: generateFileUrl(req, document.documents.front),
+      backUrl: generateFileUrl(req, document.documents.back),
     });
   } catch (err) {
     console.error("Update License Error (Customer/Owner):", err);
@@ -93,7 +100,7 @@ exports.updateLicenseCustomer = async (req, res) => {
 exports.updateLicenseOwner = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { expireDate, status } = req.body; // admin can update expiry and status
+    const { expireDate, status } = req.body;
 
     const filter = { userId, documentType: "license" };
     const update = {};
@@ -107,7 +114,6 @@ exports.updateLicenseOwner = async (req, res) => {
     }
 
     const document = await RentDocument.findOneAndUpdate(filter, update, { new: true });
-
     if (!document) return res.status(404).json({ message: "License not found" });
 
     res.status(200).json({
@@ -116,6 +122,8 @@ exports.updateLicenseOwner = async (req, res) => {
       expireDate: document.expireDate,
       status: document.documents?.status,
       verified: document.documentVerifiedStatus,
+      frontUrl: generateFileUrl(req, document.documents.front),
+      backUrl: generateFileUrl(req, document.documents.back),
     });
   } catch (err) {
     console.error("Update License Error (Admin):", err);
@@ -136,12 +144,8 @@ exports.viewLicense = async (req, res) => {
     if (req.user.role === "admin") {
       if (!userId) return res.status(400).json({ message: "Customer userId is required" });
       document = await RentDocument.findOne({ userId, documentType: "license" });
-    } 
-    else if (req.user.role === "customer" || req.user.role === "owner") {
+    } else {
       document = await RentDocument.findOne({ userId: requesterId, documentType: "license" });
-    } 
-    else {
-      return res.status(403).json({ message: "Access denied" });
     }
 
     if (!document) return res.status(404).json({ message: "License not uploaded" });
@@ -151,10 +155,8 @@ exports.viewLicense = async (req, res) => {
     res.status(200).json({
       message: "License retrieved successfully",
       license: {
-        frontImage: doc.front ? doc.front.toString("base64") : null,
-        frontType: doc.frontType || null,
-        backImage: doc.back ? doc.back.toString("base64") : null,
-        backType: doc.backType || null,
+        frontUrl: generateFileUrl(req, doc.front),
+        backUrl: generateFileUrl(req, doc.back),
         status: doc.status || "pending",
         expireDate: document.expireDate || null,
       },
@@ -183,16 +185,11 @@ exports.deleteLicense = async (req, res) => {
     if (req.user.role === "admin") {
       if (!userId) return res.status(400).json({ message: "Customer userId is required" });
       filter = { userId, documentType: "license" };
-    } 
-    else if (req.user.role === "customer" || req.user.role === "owner") {
+    } else {
       filter = { userId: requesterId, documentType: "license" };
-    } 
-    else {
-      return res.status(403).json({ message: "Access denied" });
     }
 
     const document = await RentDocument.findOneAndDelete(filter);
-
     if (!document) return res.status(404).json({ message: "License not found" });
 
     res.status(200).json({ message: "License deleted successfully" });
@@ -212,7 +209,7 @@ exports.viewAllLicenses = async (req, res) => {
     }
 
     const documents = await RentDocument.find({ documentType: "license" })
-      .populate("userId", "fullName email role") // optional: populate user info
+      .populate("userId", "fullName email role")
       .sort({ createdAt: -1 });
 
     if (!documents || documents.length === 0) {
@@ -230,6 +227,8 @@ exports.viewAllLicenses = async (req, res) => {
       verified: doc.documentVerifiedStatus,
       verifiedBy: doc.verifiedBy,
       verifiedAt: doc.verifiedAt,
+      frontUrl: generateFileUrl(req, doc.documents.front),
+      backUrl: generateFileUrl(req, doc.documents.back),
       createdAt: doc.createdAt,
     }));
 
@@ -253,17 +252,14 @@ exports.viewAllLicensesPaginated = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const { page = 1, limit = 5 } = req.query; // default page 1, limit 5
+    const { page = 1, limit = 5 } = req.query;
     const paginate = require("../utils/paginate");
-    const RentDocument = require("../models/rentDocument.model");
 
     const filter = { documentType: "license" };
     const populateOptions = { path: "userId", select: "fullName email role" };
 
-    // Use your paginate util
     const result = await paginate(RentDocument, parseInt(page), parseInt(limit), filter, populateOptions);
 
-    // Format data for output
     const formattedDocs = result.data.map((doc) => ({
       documentId: doc._id,
       userId: doc.userId?._id,
@@ -275,6 +271,8 @@ exports.viewAllLicensesPaginated = async (req, res) => {
       verified: doc.documentVerifiedStatus,
       verifiedBy: doc.verifiedBy,
       verifiedAt: doc.verifiedAt,
+      frontUrl: generateFileUrl(req, doc.documents.front),
+      backUrl: generateFileUrl(req, doc.documents.back),
       createdAt: doc.createdAt,
     }));
 

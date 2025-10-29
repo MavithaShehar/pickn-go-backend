@@ -15,8 +15,13 @@ const storage = multer.diskStorage({
 
     if (req.uploadType === "profile") {
       folderPath = path.join(__dirname, "..", "uploads", "images", "profiles");
-    } else {
+    } else if (req.uploadType === "vehicle") {
       folderPath = path.join(__dirname, "..", "uploads", "images", "vehicles");
+    } else if (req.uploadType === "complaint") {
+      folderPath = path.join(__dirname, "..", "uploads", "images", "complaints");
+    } else {
+      // default folder if type not specified
+      folderPath = path.join(__dirname, "..", "uploads", "images", "others");
     }
 
     ensureFolderExists(folderPath);

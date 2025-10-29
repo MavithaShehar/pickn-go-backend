@@ -5,21 +5,26 @@ const VALID_STATUSES = ['pending', 'processing', 'rejected', 'resolved'];
 
 class ComplaintController {
 
-  static async createComplaint(req, res) {
-    try {
-      const complaintData = {
-        ...req.body,
-        user: req.user._id
-        // images already in req.body.images (Base64 array from middleware)
-      };
+static async createComplaint(req, res) {
+  try {
+    const images = req.files?.map(file => {
+      // store relative path to serve later
+      return `/uploads/images/complaints/${file.filename}`;
+    }) || [];
 
-      const complaint = await ComplaintService.createComplaint(complaintData);
-      res.status(201).json(complaint);
-    } catch (error) {
-      console.error('Create complaint error:', error);
-      res.status(400).json({ error: error.message });
-    }
+    const complaintData = {
+      ...req.body,
+      user: req.user._id,
+      images // ← store uploaded images
+    };
+
+    const complaint = await ComplaintService.createComplaint(complaintData);
+    res.status(201).json(complaint);
+  } catch (error) {
+    console.error('Create complaint error:', error);
+    res.status(400).json({ error: error.message });
   }
+}
 
   static async getMyComplaints(req, res) {
     try {
@@ -54,19 +59,23 @@ class ComplaintController {
     }
   }
 
+  // ✅ Edit Complaint + New Image Upload Support
   static async editComplaint(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user._id;
 
-      // Validation now happens in service (but images are already Base64)
+      const newImages = req.files?.map(file =>
+        `/uploads/images/complaints/${file.filename}`
+      ) || [];
+
       const updateData = {
         title: req.body.title,
-        description: req.body.description,
-        images: req.body.images // Could be [] if no files uploaded
+        description: req.body.description
       };
 
-      // Clean undefined fields
+      if (newImages.length > 0) updateData.images = newImages;
+
       Object.keys(updateData).forEach(key => {
         if (updateData[key] === undefined || updateData[key] === '') {
           delete updateData[key];
@@ -141,8 +150,7 @@ class ComplaintController {
     }
   }
 
-
-  // Get paginated complaints for customer
+  // ✅ Paginated
   static async getMyComplaintsPaginated(req, res) {
     try {
       const userId = req.user._id;
@@ -200,6 +208,7 @@ class ComplaintController {
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
-  }}
+  }
+}
 
 module.exports = ComplaintController;

@@ -25,7 +25,7 @@ router.post(
 );
 
 // GET /api/images — View all images metadata (0 to 5)
-router.get('/images', getAllImages);
+router.get('/gallaryimages', getAllImages);
 
 // GET /api/images/:id/file — Serve the actual image file
 router.get('/images/:id/file', serveImageFile);

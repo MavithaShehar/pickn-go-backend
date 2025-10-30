@@ -10,7 +10,7 @@ const DamageReportController = require('../controllers/damgeReport.controller');
 router.post(
   '/',
   authMiddleware,
-  roleMiddleware('customer'),
+  roleMiddleware("customer","owner"),
   (req, res, next) => { req.uploadType = 'damage'; next(); }, // optional folder type
   upload.array('images', 5), // ✅ use multer array directly
   DamageReportController.createDamageReport
@@ -19,14 +19,14 @@ router.post(
 router.patch(
   '/:id',
   authMiddleware,
-  roleMiddleware('customer'),
+  roleMiddleware("customer","owner"),
   (req, res, next) => { req.uploadType = 'damage'; next(); },
   upload.array('images', 5),
   DamageReportController.updateDamageReport
 );
 
-router.get('/my', authMiddleware,roleMiddleware( 'customer'), DamageReportController.getMyReports);
-router.delete('/:id', authMiddleware,roleMiddleware( 'customer'), DamageReportController.deleteReport);
+router.get('/my', authMiddleware,roleMiddleware( "customer","owner"), DamageReportController.getMyReports);
+router.delete('/:id', authMiddleware,roleMiddleware( "customer","owner"), DamageReportController.deleteReport);
 
 // Admin/Owner routes
 router.get('/', authMiddleware, roleMiddleware('admin'), DamageReportController.getAllReports);

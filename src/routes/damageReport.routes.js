@@ -25,8 +25,8 @@ router.patch(
   DamageReportController.updateDamageReport
 );
 
-router.get('/my', authMiddleware,roleMiddleware( 'customer'), DamageReportController.getMyReports);
-router.delete('/:id', authMiddleware,roleMiddleware( 'customer'), DamageReportController.deleteReport);
+router.get('/my', authMiddleware,roleMiddleware( "customer","owner"), DamageReportController.getMyReports);
+router.delete('/:id', authMiddleware,roleMiddleware( "customer","owner"), DamageReportController.deleteReport);
 
 // Admin/Owner routes
 router.get('/', authMiddleware, roleMiddleware('admin'), DamageReportController.getAllReports);

@@ -13,25 +13,27 @@ const router = express.Router();
 router.get("/available", vehicleController.getAvailableVehicles);
 
 // Get available vehicles paginated
-router.get(
-  "/available/paginated",
-  vehicleController.getAvailableVehiclesPaginated
-);
+router.get("/available/paginated", vehicleController.getAvailableVehiclesPaginated);
 
 // Booking Count Routes
 router.use("/", vehicleBookingCountRoutes);
 
 // ---------------- Owner Routes ----------------
 
-// Add Vehicle (No images initially)
+// ✅ Add Vehicle WITH image upload support
 router.post(
   "/",
   authMiddleware,
   roleMiddleware("owner"),
+  (req, res, next) => {
+    req.uploadType = "vehicle"; // tell multer which folder to use
+    next();
+  },
+  uploadMiddleware.array("images", 5), // allow up to 5 vehicle images
   vehicleController.addVehicle
 );
 
-// Upload Vehicle Images
+// Upload Vehicle Images separately (optional)
 router.put(
   "/:id/images",
   authMiddleware,

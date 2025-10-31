@@ -22,8 +22,8 @@ router.put("/activate/:id", authMiddleware, roleMiddleware("admin"), notificatio
 // ✅ Get all deactivated notifications (admin only)
 router.get("/deactivated", authMiddleware, roleMiddleware("admin"), notificationController.getDeactivatedNotifications);
 
-// Mark as read
-//router.put("/:id/read",authMiddleware, roleMiddleware("admin"), notificationController.markAsRead);
+//Mark as read
+router.put("/:id/read",authMiddleware, roleMiddleware("admin","customer","owner"), notificationController.markAsRead);
 
 
 module.exports = router;

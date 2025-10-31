@@ -154,6 +154,26 @@ class NotificationController {
         }
     }
 
+    // ✅ Mark notification as read
+    async markAsRead(req, res) {
+    try {
+        const { id } = req.params;
+        const updatedNotification = await notificationService.markAsRead(id, req.user._id);
+
+        return res.status(200).json({
+            success: true,
+            message: "Notification marked as read",
+            notification: updatedNotification
+        });
+    } catch (error) {
+        console.error("❌ Error marking notification as read:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to mark notification as read."
+        });
+    }
+    }
+
 
 
 

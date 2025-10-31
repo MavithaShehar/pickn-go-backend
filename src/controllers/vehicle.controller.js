@@ -115,7 +115,7 @@ exports.updateVehicleImagesOnly = async (req, res) => {
     }
 
     // Map uploaded files to accessible paths
-    const imagePaths = req.files.map(file => `/uploads/vehicle/${file.filename}`);
+    const imagePaths = req.files.map(file => `/uploads/images/vehicles/${file.filename}`);
 
     const result = await vehicleService.updateVehicle(
       req.user.id,

@@ -1,6 +1,7 @@
 // models/complaint.model.js
 const mongoose = require('mongoose');
 const { nanoid } = require('nanoid');
+const { createAlert } = require('../services/alert.service');
 
 const complaintSchema = new mongoose.Schema({
   complaintID: {
@@ -33,9 +34,9 @@ const complaintSchema = new mongoose.Schema({
     },
     default: 'pending'
   },
-  // ⭐ CHANGED: Store Base64 strings instead of file paths
+  // ✅ Store file paths instead of Base64 strings
   images: {
-    type: [String], // Array of Base64 strings
+    type: [String], // Array of file paths
     validate: {
       validator: function (arr) {
         return arr.length <= 5;
@@ -75,6 +76,15 @@ complaintSchema.virtual('userEmail', {
   foreignField: '_id',
   justOne: true,
   options: { select: 'email' }
+});
+
+// Send alert after complaint is created
+complaintSchema.post('save', async function (doc) {
+  await createAlert({
+    customerId: doc.user, // alert for the user who submitted the complaint
+    complaintId: doc._id,
+    message: `Your complaint "${doc.title}" (ID: ${doc.complaintID}) has been submitted successfully.`
+  });
 });
 
 complaintSchema.set('toJSON', { virtuals: true });

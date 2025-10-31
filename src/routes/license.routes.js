@@ -7,6 +7,7 @@ const {
   uploadLicenseToMongo,
   updateLicenseCustomer,
   updateLicenseOwner,
+   viewAllLicensesPaginated,
   viewLicense,
   deleteLicense,
    viewAllLicenses,  
@@ -39,6 +40,13 @@ router.patch(
   authMiddleware,
   roleMiddleware("admin"),
   updateLicenseOwner
+);
+// Admin - View All Licenses (Paginated)
+router.get(
+  "/admin/view-all-licenses/paginated",
+  authMiddleware,
+  roleMiddleware("admin"),
+  viewAllLicensesPaginated
 );
 
 // ================================

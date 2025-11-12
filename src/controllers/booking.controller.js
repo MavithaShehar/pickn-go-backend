@@ -3,6 +3,8 @@ const sendEmail = require("../utils/sendEmail");
 const { bookingConfirmation, bookingConfirmationText } = require("../utils/emailTemplates");
 const User = require("../models/user.model");
 const Booking = require("../models/booking.model");
+const paginate = require("../utils/paginate");
+const Vehicle = require("../models/vehicle.model"); // ✅ add this line
 
 
 // ================================
@@ -243,7 +245,314 @@ exports.getConfirmedBookings = async (req, res) => {
 };
 
 
+// ================================
+// PATCH: Update Booking Status
+// ================================
+exports.updateBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const allowedStatuses = ["completed", "confirmed", "ongoing", "pending", "cancel"];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const updatedBooking = await bookingService.updateBookingStatus(id, status);
+    res.status(200).json({
+      message: `Booking status updated to '${status}' successfully`,
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// ================================
+// Paginated Versions
+// ================================
+
+// 1️⃣ Customer - Get All Bookings (Paginated)
+exports.getCustomerBookingsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    const result = await paginate(
+      Booking,
+      parseInt(page),
+      parseInt(limit),
+      { customerId: req.user.id, bookingStatus: { $ne: "cancelled" } },
+      [{ path: "vehicleId", select: "_id title year pricePerDay" }]
+    );
+
+    // Transform response
+    const formatted = result.data.map(b => ({
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: b.vehicleId
+        ? { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year }
+        : { _id: "deleted", title: "Vehicle Not Found", year: "N/A" },
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: "Customer bookings fetched successfully (paginated)",
+      bookings: formatted,
+      currentPage: result.currentPage,
+      totalPages: result.totalPages,
+      totalDocuments: result.totalDocuments,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 2️⃣ Owner - Get All Bookings (Paginated)
+exports.getOwnerBookingsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const vehicles = await Vehicle.find({ ownerId: req.user.id });
+    const vehicleIds = vehicles.map(v => v._id);
+
+    const result = await paginate(
+      Booking,
+      parseInt(page),
+      parseInt(limit),
+      { vehicleId: { $in: vehicleIds } },
+      [
+        { path: "vehicleId", select: "_id title year pricePerDay" },
+        { path: "customerId", select: "_id firstName lastName" },
+      ]
+    );
+
+    const formatted = result.data.map(b => ({
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: b.vehicleId
+        ? { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year }
+        : { _id: "deleted", title: "Vehicle Not Found", year: "N/A" },
+      customerId: b.customerId
+        ? { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` }
+        : { _id: "deleted", name: "Customer Not Found" },
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: "Owner bookings fetched successfully (paginated)",
+      bookings: formatted,
+      currentPage: result.currentPage,
+      totalPages: result.totalPages,
+      totalDocuments: result.totalDocuments,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 3️⃣ Admin - Get All Confirmed Bookings (Paginated)
+exports.getConfirmedBookingsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    const result = await paginate(
+      Booking,
+      parseInt(page),
+      parseInt(limit),
+      { bookingStatus: "confirmed" },
+      [
+        { path: "vehicleId", select: "_id title year pricePerDay" },
+        { path: "customerId", select: "_id firstName lastName" },
+      ]
+    );
+
+    const formatted = result.data.map(b => ({
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: b.vehicleId
+        ? { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year }
+        : { _id: "deleted", title: "Vehicle Not Found", year: "N/A" },
+      customerId: b.customerId
+        ? { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` }
+        : { _id: "deleted", name: "Customer Not Found" },
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: "Confirmed bookings fetched successfully (paginated)",
+      bookings: formatted,
+      currentPage: result.currentPage,
+      totalPages: result.totalPages,
+      totalDocuments: result.totalDocuments,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 
+// Rental History - Paginated
+exports.getOwnerRentalHistoryPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const vehicles = await Vehicle.find({ ownerId: req.user.id });
+    const vehicleIds = vehicles.map(v => v._id);
 
+    const result = await paginate(
+      Booking,
+      parseInt(page),
+      parseInt(limit),
+      { vehicleId: { $in: vehicleIds }, bookingEndDate: { $lt: new Date() } },
+      [
+        { path: "vehicleId", select: "_id title year pricePerDay" },
+        { path: "customerId", select: "_id firstName lastName" },
+      ]
+    );
+
+    const formatted = result.data.map(b => ({
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: b.vehicleId ? { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year } : { _id: "deleted", title: "Vehicle Not Found", year: "N/A" },
+      customerId: b.customerId ? { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` } : { _id: "deleted", name: "Customer Not Found" },
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    }));
+
+    res.json({ success: true, message: "Rental history (paginated) fetched", bookings: formatted, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Similarly for Ongoing, Upcoming, Completed:
+
+// Ongoing Bookings - Paginated
+exports.getOwnerOngoingBookingsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const vehicles = await Vehicle.find({ ownerId: req.user.id });
+    const vehicleIds = vehicles.map(v => v._id);
+    const today = new Date();
+
+    const bookingsData = await Booking.find({
+      vehicleId: { $in: vehicleIds },
+      bookingStatus: "confirmed",
+      bookingStartDate: { $lte: today },
+      bookingEndDate: { $gte: today }
+    })
+      .populate({ path: "vehicleId", select: "_id title year" })
+      .populate({ path: "customerId", select: "_id firstName lastName" })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const formatted = bookingsData.map(b => ({
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: b.vehicleId ? { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year } : { _id: "deleted", title: "Vehicle Not Found", year: "N/A" },
+      customerId: b.customerId ? { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` } : { _id: "deleted", name: "Customer Not Found" },
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    }));
+
+    res.json({ success: true, message: "Ongoing bookings (paginated) fetched", bookings: formatted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Upcoming Bookings - Paginated
+exports.getOwnerUpcomingBookingsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const vehicles = await Vehicle.find({ ownerId: req.user.id });
+    const vehicleIds = vehicles.map(v => v._id);
+    const today = new Date();
+
+    const bookingsData = await Booking.find({
+      vehicleId: { $in: vehicleIds },
+      bookingStartDate: { $gt: today }
+    })
+      .populate({ path: "vehicleId", select: "_id title year" })
+      .populate({ path: "customerId", select: "_id firstName lastName" })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const formatted = bookingsData.map(b => ({
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: b.vehicleId ? { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year } : { _id: "deleted", title: "Vehicle Not Found", year: "N/A" },
+      customerId: b.customerId ? { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` } : { _id: "deleted", name: "Customer Not Found" },
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    }));
+
+    res.json({ success: true, message: "Upcoming bookings (paginated) fetched", bookings: formatted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Completed Bookings - Paginated
+exports.getOwnerCompletedBookingsPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const vehicles = await Vehicle.find({ ownerId: req.user.id });
+    const vehicleIds = vehicles.map(v => v._id);
+
+    const bookingsData = await Booking.find({
+      vehicleId: { $in: vehicleIds },
+      bookingStatus: "completed"
+    })
+      .populate({ path: "vehicleId", select: "_id title year" })
+      .populate({ path: "customerId", select: "_id firstName lastName" })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const formatted = bookingsData.map(b => ({
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: b.vehicleId ? { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year } : { _id: "deleted", title: "Vehicle Not Found", year: "N/A" },
+      customerId: b.customerId ? { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` } : { _id: "deleted", name: "Customer Not Found" },
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    }));
+
+    res.json({ success: true, message: "Completed bookings (paginated) fetched", bookings: formatted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 

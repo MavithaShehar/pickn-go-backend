@@ -105,35 +105,86 @@ async function createBooking(vehicleId, userId, bookingStartDate, bookingEndDate
 
   const totalPrice = dayCount * Number(pricePerDay);
 
-  // Generate bookingCode
-  const currentDate = new Date();
-  const datePart = today.toISOString().split("T")[0].replace(/-/g, ""); // e.g., 20251008
+// ----------------------------------------------------
+  // --- ROBUST BOOKING CODE GENERATION (FIXED WITH RETRY) ---
+  // ----------------------------------------------------
+  let booking = null;
+  let retries = 5;
 
-  // Find how many bookings already created today
-  const countToday = await Booking.countDocuments({
-    createdAt: {
-      $gte: new Date(currentDate.setHours(0, 0, 0, 0)),
-      $lt: new Date(currentDate.setHours(23, 59, 59, 999)),
-  },
-});
+  while (retries > 0 && !booking) {
+    try {
+      const currentDate = new Date();
+      const datePart = currentDate
+        .toISOString()
+        .split("T")[0]
+        .replace(/-/g, ""); // e.g., 20251027
 
-const sequenceNumber = String(countToday + 1).padStart(6, "0"); // e.g., 000001
-const bookingCode = `BOOK-${datePart}-${sequenceNumber}`;
+      // 1. Find the last booking code starting with today's date prefix
+      const bookingPrefix = `BOOK-${datePart}-`;
 
-const booking = new Booking({
-  bookingCode, 
-  vehicleId,
-  customerId: userId,
-  bookingStartDate: start,
-  bookingEndDate: end,
-  totalPrice,
-  bookingStatus: "pending",
-  startLocation,
-  endLocation,
-});
+      const lastBooking = await Booking.findOne({
+        bookingCode: { $regex: `^${bookingPrefix}` },
+      })
+        .sort({ bookingCode: -1 })
+        .limit(1);
 
-await booking.save();
-  
+      let nextSequenceNumber = 1;
+
+      if (lastBooking && lastBooking.bookingCode) {
+        try {
+          const parts = lastBooking.bookingCode.split("-");
+          const lastNumberStr = parts[parts.length - 1];
+          const lastNumber = parseInt(lastNumberStr, 10);
+
+          if (!isNaN(lastNumber)) {
+            nextSequenceNumber = lastNumber + 1;
+          }
+        } catch (e) {
+          console.error("Error parsing last booking code, defaulting to 1", e);
+        }
+      }
+
+      // 2. Format the new sequence number
+      const sequenceNumber = String(nextSequenceNumber).padStart(6, "0");
+      const bookingCode = `BOOK-${datePart}-${sequenceNumber}`;
+
+      // 3. Create booking with the generated code
+      booking = new Booking({
+        bookingCode,
+        vehicleId,
+        customerId: userId,
+        bookingStartDate: start,
+        bookingEndDate: end,
+        totalPrice,
+        bookingStatus: "pending",
+        startLocation,
+        endLocation,
+      });
+
+      await booking.save();
+
+      // If save succeeds, break the loop
+      break;
+    } catch (error) {
+      // If it's a duplicate key error, retry with incremented sequence
+      if (error.code === 11000 && error.message.includes("bookingCode")) {
+        retries--;
+        if (retries === 0) {
+          throw new Error(
+            "Failed to generate unique booking code after multiple attempts"
+          );
+        }
+        // Wait a small random time before retry to avoid collision
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.random() * 100)
+        );
+        continue;
+      }
+      // If it's a different error, throw it
+      throw error;
+    }
+  }
+  // ----------------------------------------------------
 
   // Populate vehicleId before returning (fix undefined in emails)
   return await booking.populate("vehicleId");
@@ -237,17 +288,32 @@ async function getCustomerBookings(customerId) {
   const bookings = await Booking.find({ customerId, bookingStatus: { $ne: "cancelled" } })
     .populate({ path: "vehicleId", select: "_id title year pricePerDay" });
 
-  return bookings.map(b => ({
-    _id: b._id,
-    bookingCode: b.bookingCode,
-    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
-    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
-    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
-    totalPrice: b.totalPrice,
-    bookingStatus: b.bookingStatus,
-    startLocation: b.startLocation,
-    endLocation: b.endLocation,
-  }));
+  return bookings.map(b => {
+    // 💡 FIX: Check if b.vehicleId exists before accessing its properties
+    const vehicleDetails = b.vehicleId 
+      ? { 
+          _id: b.vehicleId._id, 
+          title: b.vehicleId.title, 
+          year: b.vehicleId.year 
+        } 
+      : { 
+          _id: 'deleted', 
+          title: 'Vehicle Not Found', 
+          year: 'N/A' 
+        }; // Provide fallback details
+
+    return {
+      _id: b._id,
+      bookingCode: b.bookingCode,
+      vehicleId: vehicleDetails, // Use the safe details object
+      bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+      bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+      totalPrice: b.totalPrice,
+      bookingStatus: b.bookingStatus,
+      startLocation: b.startLocation,
+      endLocation: b.endLocation,
+    };
+  });
 }
 
 // Owner bookings — short response
@@ -517,6 +583,28 @@ async function acceptHandover(bookingId, ownerId, { endOdometer, ratePerKm }) {
   return booking;
 }
 
+// Change booking status
+const updateBookingStatus = async (id, status) => {
+  const allowedStatuses = ["completed", "confirmed", "ongoing", "pending", "cancelled"];
+
+  if (!allowedStatuses.includes(status)) {
+    throw new Error("Invalid status value");
+  }
+
+  const booking = await Booking.findByIdAndUpdate(
+    id,
+    { bookingStatus: status }, 
+    { new: true }
+  );
+
+  if (!booking) {
+    throw new Error("Booking not found");
+  }
+
+  return booking;
+};
+
+
 
 module.exports = {
   createBooking,
@@ -535,5 +623,6 @@ module.exports = {
   confirmBooking,
   requestHandover,
   acceptHandover,
-  getOwnerContactDetails, // ✅ added
+  getOwnerContactDetails, 
+  updateBookingStatus,
 };

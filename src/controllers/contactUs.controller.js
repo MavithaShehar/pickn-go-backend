@@ -111,3 +111,29 @@ exports.replyToMessage = async (req, res) => {
     res.status(500).json({ message: "Failed to send reply" });
   }
 };
+// ===============================
+// 6️⃣ Admin: Get messages with pagination
+// ===============================
+exports.getMessagesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1; // default page 1
+    const limit = parseInt(req.query.limit) || 5; // default 5 messages per page
+    const skip = (page - 1) * limit;
+
+    const totalMessages = await Contact.countDocuments();
+    const messages = await Contact.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      currentPage: page,
+      totalPages: Math.ceil(totalMessages / limit),
+      totalMessages,
+      messages,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -11,9 +11,8 @@ const rentDocumentSchema = new mongoose.Schema(
     verifiedAt: { type: Date },
 
     documents: {
-      front: { type: Buffer, required: true }, // front image
-      back: { type: Buffer },                  // back image (optional)
-      type: { type: String, required: true }, // MIME type
+      front: { type: String, required: true }, // path to front image
+      back: { type: String, required: true },  // path to back image
       status: { type: String, enum: ["pending", "verified", "rejected"], default: "pending" },
     },
 

@@ -12,41 +12,68 @@ const {
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 
-const { uploadSingle, uploadArray, handleUploadErrors } = require('../middlewares/uploadMiddleware');
+// ✅ Import the multer instance directly (your current upload middleware)
+// Adjust the path if your file is named differently (e.g., upload.js)
+const upload = require('../middlewares/uploadMiddleware');
 
-// POST /api/images — Add one or more images (auto-trim to 5)
+// Helper: Set uploadType for dynamic folder routing (profile/vehicles)
+const setUploadType = (type) => {
+  return (req, res, next) => {
+    req.uploadType = type;
+    next();
+  };
+};
+
+// Error handler for multer (inline for simplicity, or extract to middleware if preferred)
+const handleUploadErrors = (err, req, res, next) => {
+  if (err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ message: 'File upload error', error: err.message });
+    } else if (err.message && err.message.includes('Only JPG')) {
+      return res.status(400).json({ message: 'Invalid file type', error: err.message });
+    }
+    return res.status(500).json({ message: 'Unexpected upload error', error: err.message });
+  }
+  next();
+};
+
+// POST /api/images — Add multiple images (e.g., vehicle/gallery images)
 router.post(
   '/images',
   authMiddleware,
-  roleMiddleware("admin"), // Only admin can add images
-  uploadArray('images', 10),
+  roleMiddleware("admin"),
+  setUploadType("vehicles"), // or "profile" if needed
+  upload.array('images', 10),
   handleUploadErrors,
   addImages
 );
 
-// GET /api/images — View all images metadata (0 to 5)
-router.get('/images', getAllImages);
+// GET /api/gallaryimages — List all image metadata
+router.get('/galleryimages', getAllImages);
 
-// GET /api/images/:id/file — Serve the actual image file
+// GET /api/images/:id/file — Serve actual image file
 router.get('/images/:id/file', serveImageFile);
 
-// PUT /api/images/:id — Edit specific image by ObjectId
+// PUT /api/images/:id — Update a single image (with optional new file)
 router.put(
   '/images/:id',
   authMiddleware,
   roleMiddleware("admin"),
-  uploadSingle('image'),
+  setUploadType("vehicles"), // or "profile"
+  upload.single('image'),
   handleUploadErrors,
   updateImageById
 );
 
-// ✅ GET /api/images/:id — Get single image by ID
-router.get('/images/:id', getImageById);
+// GET /api/gallaryimages/:id — Get single image metadata
+router.get('/galleryimages/:id', getImageById);
 
-// DELETE /api/images/:id — Delete specific image by ObjectId
-router.delete('/images/:id',
+// DELETE /api/images/:id — Delete image
+router.delete(
+  '/images/:id',
   authMiddleware,
   roleMiddleware("admin"),
-  deleteImageById);
+  deleteImageById
+);
 
 module.exports = router;

@@ -17,7 +17,15 @@ const {
   requestHandover,
   acceptHandover,
   getOwnerContactDetails,  
-  updateBookingStatus
+  updateBookingStatus,
+    // 🆕 Add these 3 lines
+  getCustomerBookingsPaginated,
+  getOwnerBookingsPaginated,
+  getConfirmedBookingsPaginated,
+  getOwnerRentalHistoryPaginated,
+  getOwnerOngoingBookingsPaginated,
+  getOwnerUpcomingBookingsPaginated,
+  getOwnerCompletedBookingsPaginated
 
 } = require("../controllers/booking.controller");
 
@@ -41,6 +49,9 @@ router.post("/", authMiddleware, roleMiddleware("customer","owner"), createBooki
 // Get all bookings for logged-in customer
 router.get("/customer", authMiddleware, roleMiddleware("customer", "owner"), getCustomerBookings);
 
+//paginated get all bookinngs
+router.get("/customer/paginated", authMiddleware, roleMiddleware("customer"),getCustomerBookingsPaginated);
+
 // Get booking status by ID for customer
 router.get("/:id/status", authMiddleware, roleMiddleware("customer"), getBookingStatus);
 
@@ -63,6 +74,16 @@ router.get("/customer/owner/:ownerId",authMiddleware,roleMiddleware("customer"),
 // =====================
 // Owner Routes
 // =====================
+
+//pagined see confirm all bookings
+
+router.get("/owner/paginated", authMiddleware, roleMiddleware("owner"), getOwnerBookingsPaginated);
+// Owner Paginated Routes
+router.get("/owner/history/paginated", authMiddleware, roleMiddleware("owner"), getOwnerRentalHistoryPaginated);
+router.get("/owner/ongoing/paginated", authMiddleware, roleMiddleware("owner"), getOwnerOngoingBookingsPaginated);
+router.get("/owner/upcoming/paginated", authMiddleware, roleMiddleware("owner"), getOwnerUpcomingBookingsPaginated);
+router.get("/owner/completed/paginated", authMiddleware, roleMiddleware("owner"), getOwnerCompletedBookingsPaginated);
+
 
 // Rental history (past bookings)
 router.get("/owner/history", authMiddleware, roleMiddleware("owner"), getOwnerRentalHistory);
@@ -98,5 +119,12 @@ router.put("/owner/:id/accept-handover", authMiddleware, roleMiddleware("owner")
 
 // Get all confirmed bookings
 router.get("/admin/confirmed", authMiddleware, roleMiddleware("admin"), getConfirmedBookings);
+
+
+// 🔹 Paginated routes
+
+router.get("/confirmed/paginated", authMiddleware, roleMiddleware("admin"), getConfirmedBookingsPaginated);
+
+
 
 module.exports = router;

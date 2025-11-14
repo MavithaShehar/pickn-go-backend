@@ -8,6 +8,12 @@ const roleMiddleware = require("../middlewares/roleMiddleware"); // optional
 router.post("/", contactController.createMessage);
 
 // Admin
+// Admin (Paginated)
+router.get(
+  "/paginated",
+  contactController.getMessagesPaginated
+);
+
 router.get("/", contactController.getAllMessages);
 router.get("/:id", contactController.getMessageById);
 router.delete("/:id", contactController.deleteMessage);

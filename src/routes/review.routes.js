@@ -27,5 +27,16 @@ router.get("/vehicle/:vehicleId", reviewController.getReviewsForVehicle);
 
 // Customer: get own reviews (requires login)
 router.get("/my", authMiddleware, roleMiddleware("customer", "owner"), reviewController.getMyReviews);
+// Admin paginated
+router.get("/admin/paginated", authMiddleware, roleMiddleware("admin"), reviewController.getAllReviewsPaginated);
+
+// Owner paginated
+router.get("/owner/paginated", authMiddleware, roleMiddleware("owner"), reviewController.getOwnerReviewsPaginated);
+
+// Customer paginated
+router.get("/my/paginated", authMiddleware, roleMiddleware("customer", "owner"), reviewController.getMyReviewsPaginated);
+
+// Vehicle paginated (public)
+router.get("/vehicle/:vehicleId/paginated", reviewController.getReviewsForVehiclePaginated);
 
 module.exports = router;

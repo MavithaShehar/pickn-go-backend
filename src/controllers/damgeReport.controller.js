@@ -1,5 +1,9 @@
 // controllers/damageReport.controller.js
 const DamageReportService = require('../services/damageReport.service');
+const paginate = require("../utils/paginate");
+const DamageReport = require("../models/damageReport.model");
+const Vehicle = require("../models/vehicle.model");
+
 
 class DamageReportController {
 
@@ -105,6 +109,68 @@ static async updateDamageReport(req, res) {
       res.status(400).json({ error: error.message });
     }
   }
-}
 
+// ---------------- PAGINATED METHODS ----------------
+
+  // ✅ 1️⃣ Customer - Paginated reports
+  static async getMyReportsPaginated(req, res) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 5;
+      const filter = { customerId: req.user._id };
+
+      const populateOptions = [
+        { path: "customerId", select: "firstName lastName phoneNumber" },
+        { path: "vehicleId", select: "title" },
+        { path: "bookingId", select: "bookingStartDate bookingEndDate" },
+      ];
+
+      const result = await paginate(DamageReport, page, limit, filter, populateOptions);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ✅ 2️⃣ Owner - Paginated reports
+  static async getOwnerReportsPaginated(req, res) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 5;
+
+      const vehicles = await Vehicle.find({ ownerId: req.user._id }, "_id");
+      const vehicleIds = vehicles.map((v) => v._id);
+      const filter = { vehicleId: { $in: vehicleIds } };
+
+      const populateOptions = [
+        { path: "customerId", select: "firstName lastName email phoneNumber" },
+        { path: "vehicleId", select: "title" },
+        { path: "bookingId", select: "bookingStartDate bookingEndDate" },
+      ];
+
+      const result = await paginate(DamageReport, page, limit, filter, populateOptions);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ✅ 3️⃣ Admin - Paginated all reports
+  static async getAllReportsPaginated(req, res) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const populateOptions = [
+        { path: "customerId", select: "firstName lastName phoneNumber" },
+        { path: "vehicleId", select: "title" },
+        { path: "bookingId", select: "bookingStartDate bookingEndDate" },
+      ];
+
+      const result = await paginate(DamageReport, page, limit, {}, populateOptions);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }}
 module.exports = DamageReportController;

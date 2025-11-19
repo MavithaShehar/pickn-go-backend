@@ -107,28 +107,28 @@ const getImageById = async (req, res) => {
   }
 };
 
-// // GET /api/images/:id/file → Serve the actual image file
-// const serveImageFile = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const image = await imageService.getImageById(id);
+// GET /api/images/:id/file → Serve the actual image file
+const serveImageFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const image = await imageService.getImageById(id);
     
-//     // Check if file exists
-//     if (!fs.existsSync(image.path)) {
-//       // If file doesn't exist, remove it from the database
-//       await imageService.deleteImageById(id);
-//       return res.status(404).json({ message: 'Image file not found on disk and has been removed from database' });
-//     }
+    // // Check if file exists
+    // if (!fs.existsSync(image.path)) {
+    //   // If file doesn't exist, remove it from the database
+    //   await imageService.deleteImageById(id);
+    //   return res.status(404).json({ message: 'Image file not found on disk and has been removed from database' });
+    // }
     
-//     // Set appropriate content type
-//     res.setHeader('Content-Type', image.mimeType);
+    // Set appropriate content type
+    res.setHeader('Content-Type', image.mimeType);
     
-//     // Serve the file
-//     res.sendFile(path.resolve(image.path));
-//   } catch (error) {
-//     res.status(404).json({ message: error.message });
-//   }
-// };
+    // Serve the file
+    res.sendFile(path.resolve(image.path));
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+};
 
 module.exports = {
   addImages,
@@ -136,5 +136,5 @@ module.exports = {
   updateImageById,
   deleteImageById,
   getImageById,
-  // serveImageFile
+  serveImageFile
 };

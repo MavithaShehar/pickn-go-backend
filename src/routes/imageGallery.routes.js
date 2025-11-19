@@ -52,7 +52,7 @@ router.post(
 router.get('/galleryimages', getAllImages);
 
 // GET /api/images/:id/file — Serve actual image file
-router.get('/images/:id/file', serveImageFile);
+// router.get('/images/:id/file', serveImageFile);
 
 // PUT /api/images/:id — Update a single image (with optional new file)
 router.put(

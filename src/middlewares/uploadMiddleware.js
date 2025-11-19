@@ -27,6 +27,10 @@ const storage = multer.diskStorage({
         folderPath = path.join(__dirname, "..", "uploads", "images", "vehicles");
         break;
 
+       case "license": // ✅ added this
+       folderPath = path.join(__dirname, "..", "uploads", "images", "licenses");
+      break;  
+
       case "complaint":
         folderPath = path.join(__dirname, "..", "uploads", "images", "complaints");
         break;

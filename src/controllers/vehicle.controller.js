@@ -16,6 +16,7 @@ const ensureVerifiedOwner = (req, res) => {
 // Add new vehicle (✅ No images required now)
 exports.addVehicle = async (req, res) => {
   try {
+    // 1️⃣ Auto-upgrade customer to owner
     if (req.user.role === "customer") {
       await User.findByIdAndUpdate(req.user.id, { role: "owner" });
       req.user.role = "owner";
@@ -23,26 +24,29 @@ exports.addVehicle = async (req, res) => {
 
     if (!ensureVerifiedOwner(req, res)) return;
 
-    // ✅ Allow creating vehicle WITHOUT images
+    // 2️⃣ Handle uploaded images (form-data)
     let images = [];
-
-    if (req.body.images && req.body.images.length > 0) {
-      images = req.body.images;
-    } else if (req.files && req.files.length > 0) {
-      images = req.body.images || [];
+    if (req.files && req.files.length > 0) {
+      images = req.files.map((file) => `/uploads/images/vehicles/${file.filename}`);
     }
 
-    const vehicleData = { ...req.body, images };
+    // 3️⃣ Prepare vehicle data
+    const vehicleData = {
+      ...req.body,
+      images,
+    };
 
+    // 4️⃣ Save vehicle
     const vehicle = await vehicleService.createVehicle(req.user.id, vehicleData);
 
     res.status(201).json({
       success: true,
       message: "Vehicle created successfully",
-      vehicle
+      vehicle,
     });
 
   } catch (error) {
+    console.error("Error adding vehicle:", error);
     res.status(400).json({ message: error.message });
   }
 };
@@ -111,7 +115,7 @@ exports.updateVehicleImagesOnly = async (req, res) => {
     }
 
     // Map uploaded files to accessible paths
-    const imagePaths = req.files.map(file => `/uploads/vehicle/${file.filename}`);
+    const imagePaths = req.files.map(file => `/uploads/images/vehicles/${file.filename}`);
 
     const result = await vehicleService.updateVehicle(
       req.user.id,

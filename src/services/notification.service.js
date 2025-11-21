@@ -113,6 +113,25 @@ class NotificationService {
         );
     }
 
+    // Mark a notification as read by a specific user
+async markAsRead(notificationId, userId) {
+    try {
+        const notification = await Notification.findByIdAndUpdate(
+            notificationId,
+            { $addToSet: { readBy: userId } },
+            { new: true, runValidators: true }
+        );
+
+        if (!notification) {
+            throw new Error("Notification not found");
+        }
+
+        return notification;
+    } catch (error) {
+        console.error("Error in markAsRead:", error.message);
+        throw new Error("Failed to mark notification as read.");
+    }
+    }
 
     // Mark a notification as read by a specific user
     /*async markAsRead(notificationId, userId) {

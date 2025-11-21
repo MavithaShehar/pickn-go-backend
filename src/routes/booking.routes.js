@@ -69,7 +69,7 @@ router.delete("/:id", authMiddleware, roleMiddleware("customer","owner"), delete
 router.put("/:id/request-handover", authMiddleware,roleMiddleware("customer"), requestHandover);
 
 // Get owner contact details by owner ID
-router.get("/customer/owner/:ownerId",authMiddleware,roleMiddleware("customer"), getOwnerContactDetails);
+router.get("/customer/owner/:ownerId",authMiddleware,roleMiddleware("customer", "owner"), getOwnerContactDetails);
 
 // =====================
 // Owner Routes

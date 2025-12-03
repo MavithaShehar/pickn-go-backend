@@ -4,11 +4,16 @@ const mongoose = require('mongoose');
 const imageSchema = new mongoose.Schema({
   filename: {
     type: String,
-    //required: true
+    required: true
   },
   path: {
     type: String,
-    //required: true
+    required: true
+  },
+
+  originalName: { 
+    type: String,
+    required: true
   },
   
   mimeType: {
@@ -17,7 +22,7 @@ const imageSchema = new mongoose.Schema({
   },
   size: {
     type: Number,
-    //required: true
+    required: true
   },
   uploadedAt: {
     type: Date,

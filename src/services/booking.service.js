@@ -389,7 +389,7 @@ async function getBookingById(userId, bookingId) {
 
   return {
     _id: booking._id,
-    bookingCode: b.bookingCode,
+    bookingCode: booking.bookingCode,
     vehicleId: {
       _id: booking.vehicleId._id,
       title: booking.vehicleId.title,

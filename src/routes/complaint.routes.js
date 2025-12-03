@@ -47,18 +47,11 @@ router.get(
   ComplaintController.getMyComplaintsPaginated
 );
 
-// ✅ View complaint by ID (customer sees only their own)
+// ✅ Admin: Get all
 router.get(
-  '/:id',
-  roleMiddleware("admin", "customer"),
-  ComplaintController.getComplaintById
-);
-
-// ✅ Admin: Filtering
-router.get(
-  '/status/:status',
+  '/',
   roleMiddleware("admin"),
-  ComplaintController.getComplaintsByStatus
+  ComplaintController.getAllComplaints
 );
 
 // ✅ Admin: Pagination
@@ -66,6 +59,14 @@ router.get(
   '/paginated',
   roleMiddleware("admin"),
   ComplaintController.getAllComplaintsPaginated
+);
+
+
+// ✅ Admin: Filtering
+router.get(
+  '/status/:status',
+  roleMiddleware("admin"),
+  ComplaintController.getComplaintsByStatus
 );
 
 // ✅ Admin: Pagination + Filtering
@@ -82,11 +83,12 @@ router.patch(
   ComplaintController.updateComplaintStatus
 );
 
-// ✅ Admin: Get all
+// ✅ View complaint by ID (customer sees only their own)
 router.get(
-  '/',
-  roleMiddleware("admin"),
-  ComplaintController.getAllComplaints
+  '/:id',
+  roleMiddleware("admin", "customer"),
+  ComplaintController.getComplaintById
 );
+
 
 module.exports = router;

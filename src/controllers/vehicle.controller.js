@@ -232,25 +232,38 @@ exports.getAvailableVehiclesByOwner = async (req, res) => {
   }
 };
 
+
+
+
+
+// PUT /api/vehicles/:id/status
 exports.updateVehicleStatus = async (req, res) => {
   try {
-    if (!ensureVerifiedOwner(req, res)) return;
-
+    const ownerId = req.user?.id || req.user?._id;
+    const vehicleId = req.params.id;
     const { status } = req.body;
-    const updated = await vehicleService.updateVehicleStatus(
-      req.user.id,
-      req.params.id,
-      status
-    );
 
-    res.json({
-      message: "Vehicle status updated successfully",
-      vehicle: updated,
-    });
+    const result = await vehicleService.updateVehicleStatus(ownerId, vehicleId, status);
+
+    if (!result.success) {
+      if (result.message === "Vehicle not found") {
+        return res.status(404).json(result);
+      }
+      if (result.message.includes("Invalid status")) {
+        return res.status(400).json(result);
+      }
+      if (result.message.includes("Only verified owners")) {
+        return res.status(403).json(result);
+      }
+      return res.status(400).json(result);
+    }
+
+    return res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 exports.adminUpdateVerificationStatus = async (req, res) => {
   try {

@@ -1,61 +1,119 @@
 # Node modules
+
 node_modules/
 
+
+
 # Logs
+
 logs
+
 *.log
+
 npm-debug.log*
+
 yarn-debug.log*
+
 yarn-error.log*
+
 pnpm-debug.log*
 
+
+
 # Environment variables
-.env
-.env.local
+
 .env.*.local
 
+
+
 # Runtime data
+
 pids
+
 *.pid
+
 *.seed
+
 *.pid.lock
 
+
+
 # Coverage directory used by tools like istanbul
+
 coverage/
 
+
+
 # Build output
+
 dist/
+
 build/
 
+
+
 # Debug files
+
 *.swp
+
 *.swo
+
 *.bak
 
+
+
 # IDE / Editor folders
+
 .vscode/
+
 .idea/
+
 .DS_Store
+
 *.sublime-workspace
+
 *.sublime-project
+
+
 
 # ignore all uploaded files
 
 
 
+
+
+
+
 # OS specific
+
 Thumbs.db
 
 
 
+
+
+
+
 # Upload folders - DO NOT commit actual image files
+
 src/uploads/images/**/*
+
 !src/uploads/images/.gitkeep
 
+
+
 # But keep the folder structure
+
 !src/uploads/images/profiles/.gitkeep
+
 !src/uploads/images/vehicles/.gitkeep
+
 !src/uploads/images/licenses/.gitkeep
+
 !src/uploads/images/complaints/.gitkeep
+
 !src/uploads/images/damageReports/.gitkeep
+
 !src/uploads/images/others/.gitkeep
+
+config.bat

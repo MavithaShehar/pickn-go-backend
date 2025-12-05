@@ -145,7 +145,7 @@ const serveImageFile = async (req, res) => {
     res.status(404).json({ message: error.message });
   }
 };
-//make all functions available
+
 module.exports = {
   addImages,
   getAllImages,

@@ -1,4 +1,3 @@
-// controllers/imageGallery.controller.js
 const imageService = require('../services/imageGallery.service');
 const fs = require('fs');
 const path = require('path');
@@ -112,49 +111,40 @@ const serveImageFile = async (req, res) => {
   try {
     const { id } = req.params;
     const image = await imageService.getImageById(id);
-
-     // ✅ Resolve absolute path properly
-    const absolutePath = path.isAbsolute(image.path) 
-      ? image.path 
-      : path.resolve(__dirname, '..', image.path);
+    
+    // ✅ Convert relative path to absolute
+    const projectRoot = path.join(__dirname, '..', '..');
+    const absolutePath = path.join(projectRoot, image.path);
+    
+    console.log('🖼️ Serving image:', {
+      id: id,
+      relativePath: image.path,
+      absolutePath: absolutePath,
+      exists: fs.existsSync(absolutePath)
+    });
     
     // ✅ Check if file exists
     if (!fs.existsSync(absolutePath)) {
-      console.error(`File not found: ${absolutePath}`);
+      console.error(`❌ File not found: ${absolutePath}`);
       return res.status(404).json({ 
-        message: 'Image file not found',
-        path: image.path // debugging සඳහා
+        message: 'Image file not found on disk',
+        relativePath: image.path,
+        absolutePath: absolutePath,
+        hint: 'Image files are not committed to git. Make sure uploads folder exists and contains the file.'
       });
     }
     
-    // Set appropriate content type
+    // Set appropriate headers
     res.setHeader('Content-Type', image.mimeType);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // ✅ Cache support
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
     
     // Serve the file
     res.sendFile(absolutePath);
   } catch (error) {
-    console.error('Error serving image:', error);
+    console.error('❌ Error serving image:', error);
     res.status(404).json({ message: error.message });
   }
 };
-    
-    // // Check if file exists
-    // if (!fs.existsSync(image.path)) {
-    //   // If file doesn't exist, remove it from the database
-    //   await imageService.deleteImageById(id);
-    //   return res.status(404).json({ message: 'Image file not found on disk and has been removed from database' });
-    // }
-    
-    // Set appropriate content type
-//     res.setHeader('Content-Type', image.mimeType);
-    
-//     // Serve the file
-//     res.sendFile(path.resolve(image.path));
-//   } catch (error) {
-//     res.status(404).json({ message: error.message });
-//   }
-// };
 
 module.exports = {
   addImages,

@@ -1,9 +1,15 @@
-// services/imageService.js
 const ImageGallery = require('../models/imageGallery.model');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const MAX_IMAGES = 5;
+
+// ✅ Helper function to convert absolute path to relative
+const getRelativePath = (absolutePath) => {
+  // Get project root (assuming services folder is in src/)
+  const projectRoot = path.join(__dirname, '..', '..');
+  return path.relative(projectRoot, absolutePath).replace(/\\/g, '/');
+};
 
 // ADD one or more images (FIFO: remove oldest if needed)
 const addImages = async (req) => {
@@ -13,17 +19,26 @@ const addImages = async (req) => {
 
   const gallery = await ImageGallery.getSingleton();
   
-  // Create new images with file paths
-  const newImages = req.files.map(file => ({
-    filename: file.filename,
-    path: file.path,
-    originalName: file.originalname,
-    mimeType: file.mimetype,
-    size: file.size,
-    uploadedAt: new Date()
-  }));
+  // ✅ Create new images with RELATIVE paths
+  const newImages = req.files.map(file => {
+    const relativePath = getRelativePath(file.path);
+    
+    console.log('📁 Saving image:', {
+      absolute: file.path,
+      relative: relativePath,
+      originalname: file.originalname
+    });
+    
+    return {
+      filename: file.filename,
+      path: relativePath, // ⬅️ Save relative path
+      originalName: file.originalname || file.filename,
+      mimeType: file.mimetype,
+      size: file.size,
+      uploadedAt: new Date()
+    };
+  });
   
-  // Store current count before addition
   const initialCount = gallery.images.length;
   
   // Add new images and maintain FIFO limit
@@ -32,11 +47,18 @@ const addImages = async (req) => {
   
   let removedImages = [];
   if (removedCount > 0) {
-    // Remove oldest files from disk and store removed image info
     removedImages = gallery.images.slice(0, removedCount);
+    
+    // ✅ Delete files using absolute path
     removedImages.forEach(image => {
       try {
-        fs.unlinkSync(image.path);
+        const projectRoot = path.join(__dirname, '..', '..');
+        const absolutePath = path.join(projectRoot, image.path);
+        
+        if (fs.existsSync(absolutePath)) {
+          fs.unlinkSync(absolutePath);
+          console.log('🗑️ Deleted old file:', absolutePath);
+        }
       } catch (err) {
         console.error('Error deleting file:', err);
       }
@@ -47,7 +69,6 @@ const addImages = async (req) => {
   
   await gallery.save();
   
-  // Return only added images and removal info
   const addedImagesWithIds = gallery.images.slice(-newImages.length).map(img => ({
     _id: img._id,
     filename: img.filename,
@@ -69,7 +90,7 @@ const addImages = async (req) => {
   };
 };
 
-// GET all images
+// ✅ GET all images - මේකයි මග හැරුණේ!
 const getAllImages = async () => {
   const gallery = await ImageGallery.getSingleton();
   return gallery.images;
@@ -92,16 +113,24 @@ const updateImageById = async (id, req) => {
     throw new Error('No image found with this ID');
   }
 
-  // Delete old file
+  // ✅ Delete old file using absolute path
   try {
-    fs.unlinkSync(image.path);
+    const projectRoot = path.join(__dirname, '..', '..');
+    const oldAbsolutePath = path.join(projectRoot, image.path);
+    
+    if (fs.existsSync(oldAbsolutePath)) {
+      fs.unlinkSync(oldAbsolutePath);
+      console.log('🗑️ Deleted old file:', oldAbsolutePath);
+    }
   } catch (err) {
     console.error('Error deleting old file:', err);
   }
 
-  // Update with new file
+  // ✅ Update with new file (relative path)
+  const relativePath = getRelativePath(req.file.path);
+  
   image.filename = req.file.filename;
-  image.path = req.file.path;
+  image.path = relativePath; // ⬅️ Save relative path
   image.originalName = req.file.originalname;
   image.mimeType = req.file.mimetype;
   image.size = req.file.size;
@@ -124,14 +153,19 @@ const deleteImageById = async (id) => {
     throw new Error('No image found with this ID');
   }
 
-  // Remove file from disk
+  // ✅ Remove file from disk using absolute path
   try {
-    fs.unlinkSync(image.path);
+    const projectRoot = path.join(__dirname, '..', '..');
+    const absolutePath = path.join(projectRoot, image.path);
+    
+    if (fs.existsSync(absolutePath)) {
+      fs.unlinkSync(absolutePath);
+      console.log('🗑️ Deleted file:', absolutePath);
+    }
   } catch (err) {
     console.error('Error deleting file:', err);
   }
 
-  // Remove from database
   gallery.images.pull(id);
   await gallery.save();
   
@@ -149,16 +183,24 @@ const getGallery = async () => {
 
 // GET image by ObjectId
 const getImageById = async (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error('Invalid image ID format');
+  }
+
   const gallery = await ImageGallery.getSingleton();
   const image = gallery.images.id(id);
 
-  if (!image) throw new Error('No image found with this ID');
+  if (!image) {
+    throw new Error('No image found with this ID');
+  }
+  
   return image;
 };
 
+// ✅ Export all functions
 module.exports = {
   addImages,
-  getAllImages,
+  getAllImages,        // ⬅️ මේක තමයි මග හැරුණේ
   updateImageById,
   deleteImageById,
   getGallery,

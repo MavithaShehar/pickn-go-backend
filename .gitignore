@@ -45,3 +45,17 @@ build/
 
 # OS specific
 Thumbs.db
+
+
+
+# Upload folders - DO NOT commit actual image files
+src/uploads/images/**/*
+!src/uploads/images/.gitkeep
+
+# But keep the folder structure
+!src/uploads/images/profiles/.gitkeep
+!src/uploads/images/vehicles/.gitkeep
+!src/uploads/images/licenses/.gitkeep
+!src/uploads/images/complaints/.gitkeep
+!src/uploads/images/damageReports/.gitkeep
+!src/uploads/images/others/.gitkeep

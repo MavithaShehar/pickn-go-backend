@@ -21,21 +21,17 @@ const addImages = async (req) => {
   
   // ✅ Create new images with RELATIVE paths
   const newImages = req.files.map(file => {
-    const relativePath = getRelativePath(file.path);
-    
-    console.log('📁 Saving image:', {
-      absolute: file.path,
-      relative: relativePath,
-      originalname: file.originalname
-    });
+    const relativePath = path.relative(
+      path.resolve(__dirname, '..', '..'), // project root
+      file.path // absolute path from multer
+    );
     
     return {
       filename: file.filename,
-      path: relativePath, // ⬅️ Save relative path
-      originalName: file.originalname || file.filename,
+      originalName: file.originalname,
+      path: relativePath, // ✅ Save relative path
       mimeType: file.mimetype,
       size: file.size,
-      uploadedAt: new Date()
     };
   });
   
@@ -200,7 +196,7 @@ const getImageById = async (id) => {
 // ✅ Export all functions
 module.exports = {
   addImages,
-  getAllImages,        // ⬅️ මේක තමයි මග හැරුණේ
+  getAllImages,       
   updateImageById,
   deleteImageById,
   getGallery,

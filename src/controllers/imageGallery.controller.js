@@ -107,18 +107,21 @@ const getImageById = async (req, res) => {
 };
 
 // GET /api/images/:id/file → Serve the actual image file
+
 const serveImageFile = async (req, res) => {
   try {
     const { id } = req.params;
     const image = await imageService.getImageById(id);
     
-    // ✅ Convert relative path to absolute
-    const projectRoot = path.join(__dirname, '..', '..');
+    // ✅ Build absolute path correctly
+    // Assume image.path is like: "src/uploads/images/others/1764907186150-cars.jpg"
+    const projectRoot = path.resolve(__dirname, '..', '..'); // Go to project root
     const absolutePath = path.join(projectRoot, image.path);
     
     console.log('🖼️ Serving image:', {
       id: id,
-      relativePath: image.path,
+      storedPath: image.path,
+      projectRoot: projectRoot,
       absolutePath: absolutePath,
       exists: fs.existsSync(absolutePath)
     });
@@ -128,7 +131,7 @@ const serveImageFile = async (req, res) => {
       console.error(`❌ File not found: ${absolutePath}`);
       return res.status(404).json({ 
         message: 'Image file not found on disk',
-        relativePath: image.path,
+        storedPath: image.path,
         absolutePath: absolutePath,
         hint: 'Image files are not committed to git. Make sure uploads folder exists and contains the file.'
       });

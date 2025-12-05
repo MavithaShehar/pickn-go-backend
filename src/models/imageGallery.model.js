@@ -12,8 +12,7 @@ const imageSchema = new mongoose.Schema({
   },
 
   originalName: { 
-    type: String,
-    required: true
+    type: String
   },
   
   mimeType: {

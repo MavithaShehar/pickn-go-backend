@@ -34,7 +34,7 @@ router.patch(
 );
 
 // ================================
-// admin verfy License 
+// admin verify License 
 router.patch(
   "/:userId/update-license",
   authMiddleware,

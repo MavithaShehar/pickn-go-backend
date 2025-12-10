@@ -1,0 +1,192 @@
+const notificationService = require("../services/notification.service");
+
+class NotificationController {
+    // ✅ Create Notification (Admin only)
+    async createNotification(req, res) {
+        try {
+            if (req.user.role !== "admin") {
+                return res.status(403).json({ message: "Only admins can create notifications" });
+            }
+
+            const notification = await notificationService.createNotification(req.body, req.user._id);
+            res.status(201).json({ success: true, notification });
+        } catch (error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // ✅ Get notifications for logged-in user based on role
+    async getNotifications(req, res) {
+        try {
+            // Ensure user data exists in request
+            if (!req.user || !req.user.role) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Unauthorized access. Please log in again.",
+                });
+            }
+
+            const userRole = req.user.role.toLowerCase(); // normalize role casing
+
+            let notifications = [];
+
+            // Admins → view all
+            if (userRole === "admin") {
+                notifications = await notificationService.getAllNotifications();
+            } else {
+                // Owners & Customers → only relevant ones
+                notifications = await notificationService.getNotificationsForRole(userRole);
+            }
+
+            return res.status(200).json({
+                success: true,
+                count: notifications.length,
+                data: notifications,
+            });
+        } catch (error) {
+            console.error("❌ Error fetching notifications:", error.message);
+            return res.status(500).json({
+                success: false,
+                message: error.message || "Server error while fetching notifications.",
+            });
+        }
+    }
+
+    async getDeactivatedNotifications(req, res) {
+        try {
+            const notifications = await notificationService.getDeactivatedNotifications();
+
+            return res.status(200).json({
+                success: true,
+                count: notifications.length,
+                data: notifications
+            });
+        } catch (error) {
+            console.error("Error fetching deactivated notifications:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Server error while fetching deactivated notifications."
+            });
+        }
+    }
+
+
+    async updateNotification(req, res) {
+        try {
+            const { id } = req.params;
+            const updated = await notificationService.updateNotification(
+                id,
+                req.body
+            );
+
+            if (!updated) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Notification not found",
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: "Notification updated successfully",
+                data: updated,
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to update notification",
+                error: error.message,
+            });
+        }
+    }
+
+    // ✅ Deactivate notification
+    async deactivateNotification(req, res) {
+        try {
+            const { id } = req.params;
+            const updated = await notificationService.deactivateNotification(id);
+
+            if (!updated) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Notification not found",
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: "Notification deactivated successfully",
+                data: updated,
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to deactivate notification",
+                error: error.message,
+            });
+        }
+    }
+
+// ✅ Activate notification
+    async activateNotification(req, res) {
+        try {
+            const { id } = req.params;
+            const updated = await notificationService.activateNotification(id);
+
+            if (!updated) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Notification not found",
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: "Notification activated successfully",
+                data: updated,
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to activate notification",
+                error: error.message,
+            });
+        }
+    }
+
+    // ✅ Mark notification as read
+    async markAsRead(req, res) {
+    try {
+        const { id } = req.params;
+        const updatedNotification = await notificationService.markAsRead(id, req.user._id);
+
+        return res.status(200).json({
+            success: true,
+            message: "Notification marked as read",
+            notification: updatedNotification
+        });
+    } catch (error) {
+        console.error("❌ Error marking notification as read:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to mark notification as read."
+        });
+    }
+    }
+
+
+
+
+    // ✅ Mark notification as read
+    /*async markAsRead(req, res) {
+        try {
+            const { id } = req.params;
+            const updatedNotification = await notificationService.markAsRead(id, req.user._id);
+            res.status(200).json({ success: true, notification: updatedNotification });
+        } catch (error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }*/
+}
+
+module.exports = new NotificationController();

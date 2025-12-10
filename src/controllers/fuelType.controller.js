@@ -8,7 +8,20 @@ exports.createFuelType = async (req, res) => {
     if (exists)
       return res.status(400).json({ message: "Fuel Type already exists" });
 
-    const fuelType = await FuelType.create({ type });
+    // Generate unique fuel type ID
+    const lastFuelType = await FuelType.findOne({}, {}, { sort: { 'fuelTypeID': -1 } });
+    
+    let nextNumber = 1;
+    if (lastFuelType && lastFuelType.fuelTypeID) {
+      // Extract the number from the last ID (e.g., "FT-0001" -> 1)
+      const lastNumber = parseInt(lastFuelType.fuelTypeID.split('-')[1]);
+      nextNumber = lastNumber + 1;
+    }
+    
+    // Format the ID as "FT-XXXX" with leading zeros
+    const fuelTypeID = `FT-${nextNumber.toString().padStart(4, '0')}`;
+
+    const fuelType = await FuelType.create({ type, fuelTypeID });
     res.status(201).json(fuelType);
   } catch (error) {
     res.status(500).json({ message: error.message });

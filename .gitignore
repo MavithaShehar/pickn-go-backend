@@ -39,5 +39,9 @@ build/
 *.sublime-workspace
 *.sublime-project
 
+# ignore all uploaded files
+
+
+
 # OS specific
 Thumbs.db

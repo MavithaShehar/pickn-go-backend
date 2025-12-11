@@ -63,7 +63,7 @@ router.get(
 router.get(
   "/:userId/view-license",
   authMiddleware,
-  roleMiddleware("admin"),
+  roleMiddleware("admin" , "owner"),
   viewLicense
 );
 
@@ -93,3 +93,5 @@ router.get(
 );
 
 module.exports = router;
+
+

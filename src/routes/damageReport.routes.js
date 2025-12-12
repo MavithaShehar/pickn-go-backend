@@ -4,7 +4,7 @@ const router = express.Router();
 const upload = require('../middlewares/uploadMiddleware'); // ✅ multer instance
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
-const DamageReportController = require('../controllers/damgeReport.controller');
+const DamageReportController = require('../controllers/damageReport.controller');
 
 // Customer routes
 router.post(
@@ -23,6 +23,13 @@ router.patch(
   (req, res, next) => { req.uploadType = 'damageReports'; next(); },
   upload.array('images', 5),
   DamageReportController.updateDamageReport
+);
+
+router.get(
+  "/my/paginated",
+  authMiddleware,
+  roleMiddleware("customer"),
+  DamageReportController.getMyReportsPaginated
 );
 
 router.get('/my', authMiddleware,roleMiddleware( "customer","owner"), DamageReportController.getMyReports);

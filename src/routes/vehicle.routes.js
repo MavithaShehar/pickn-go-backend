@@ -72,7 +72,7 @@ router.get(
 
 // Update Vehicle
 router.put(
-  "/:id",
+  "/:id/status",
   authMiddleware,
   roleMiddleware("owner"),
   vehicleController.updateVehicle

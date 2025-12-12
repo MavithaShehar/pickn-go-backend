@@ -142,19 +142,23 @@ exports.deleteVehicle = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const vehicle = await vehicleService.getVehicleById(
-      req.user.id,
-      req.params.id
-    );
-    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
-
     const deleted = await vehicleService.deleteVehicle(
       req.user.id,
       req.params.id
     );
-    if (!deleted) return res.status(404).json({ message: "Vehicle not found" });
+    
+    if (!deleted.success) {
+      // Check if it's the "active bookings" error or "not found" error
+      if (deleted.message.includes("Cannot delete vehicle")) {
+        return res.status(400).json({ message: deleted.message });
+      }
+      return res.status(404).json({ message: deleted.message });
+    }
 
-    res.json({ message: "Vehicle deleted successfully" });
+    res.json({ 
+      success: true,
+      message: deleted.message 
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

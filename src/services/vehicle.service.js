@@ -1,5 +1,6 @@
 const Vehicle = require("../models/vehicle.model");
 const User = require("../models/user.model");
+const Booking = require("../models/booking.model");
 const sendEmail = require("../utils/sendEmail");
 const generateVehicleCode = require("../utils/generateVehicleCode");
 
@@ -91,11 +92,32 @@ async function deleteVehicle(ownerId, vehicleId) {
   try {
     await ensureVerifiedOwner(ownerId);
 
-    const vehicle = await Vehicle.findOneAndDelete({ _id: vehicleId, ownerId });
+    // Check if vehicle exists
+    const vehicle = await Vehicle.findOne({ _id: vehicleId, ownerId });
     if (!vehicle) return { success: false, message: "Vehicle not found" };
 
-    // No file deletion needed because images are Base64
-    return { success: true, message: "Vehicle deleted successfully", data: vehicle };
+    // Check for active bookings (pending, confirmed, ongoing)
+    const activeBookings = await Booking.find({
+      vehicleId: vehicleId,
+      bookingStatus: { $in: ["pending", "confirmed", "ongoing"] }
+    });
+
+    if (activeBookings.length > 0) {
+      const bookingCodes = activeBookings.map(b => b.bookingCode).join(", ");
+      return { 
+        success: false, 
+        message: `Cannot delete vehicle. It has ${activeBookings.length} active booking(s) with status: pending, confirmed, or ongoing. Booking Code(s): ${bookingCodes}` 
+      };
+    }
+
+    // Delete the vehicle if no active bookings
+    const deletedVehicle = await Vehicle.findOneAndDelete({ _id: vehicleId, ownerId });
+    
+    return { 
+      success: true, 
+      message: "Vehicle deleted successfully", 
+      data: deletedVehicle 
+    };
   } catch (error) {
     return { success: false, message: error.message };
   }

@@ -34,13 +34,14 @@ router.patch(
 );
 
 // ================================
-// admin verify License 
+// Admin / Owner verifies a license 
 router.patch(
-  "/:userId/update-license",
+  "/:userId/verify-license",
   authMiddleware,
-  roleMiddleware("admin"),
+  roleMiddleware("admin", "owner"),
   updateLicenseOwner
 );
+
 // Admin - View All Licenses (Paginated)
 router.get(
   "/admin/view-all-licenses/paginated",
@@ -63,7 +64,7 @@ router.get(
 router.get(
   "/:userId/view-license",
   authMiddleware,
-  roleMiddleware("admin"),
+  roleMiddleware("owner","admin"),
   viewLicense
 );
 

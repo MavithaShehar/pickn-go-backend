@@ -11,7 +11,7 @@ router.use(authMiddleware);
 // ✅ Customer: Create complaint (with images)
 router.post(
   '/',
-  roleMiddleware("customer"),
+  roleMiddleware("customer", "owner"),
   (req, res, next) => { req.uploadType = "complaint"; next(); },
   upload.array('images', 5),
   ComplaintController.createComplaint
@@ -20,7 +20,7 @@ router.post(
 // ✅ Customer: Update complaint (with images)
 router.put(
   '/:id',
-  roleMiddleware("customer"),
+  roleMiddleware("customer", "owner"),
   (req, res, next) => { req.uploadType = "complaint"; next(); },
   upload.array('images', 5),
   ComplaintController.editComplaint
@@ -29,21 +29,21 @@ router.put(
 // ✅ Customer: Delete complaint
 router.delete(
   '/:id',
-  roleMiddleware("customer"),
+  roleMiddleware("customer", "owner"),
   ComplaintController.deleteComplaint
 );
 
 // ✅ Customer: View own complaints
 router.get(
   '/my-complaints',
-  roleMiddleware("customer"),
+  roleMiddleware("customer", "owner"),
   ComplaintController.getMyComplaints
 );
 
 // ✅ Customer: Pagination
 router.get(
   '/my-complaints/paginated',
-  roleMiddleware("customer"),
+  roleMiddleware("customer", "owner"),
   ComplaintController.getMyComplaintsPaginated
 );
 
@@ -86,7 +86,7 @@ router.patch(
 // ✅ View complaint by ID (customer sees only their own)
 router.get(
   '/:id',
-  roleMiddleware("admin", "customer"),
+  roleMiddleware("admin", "owner", "customer"),
   ComplaintController.getComplaintById
 );
 

@@ -116,7 +116,7 @@ exports.updateLicenseOwner = async (req, res) => {
     if (!document) return res.status(404).json({ message: "License not found" });
 
     res.status(200).json({
-      message: "License verified/updated successfully by admin",
+      message: "License verified/updated successfully",
       documentId: document._id,
       expireDate: document.expireDate,
       status: document.documents?.status,

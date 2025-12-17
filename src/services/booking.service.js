@@ -348,8 +348,13 @@ async function getConfirmedBookings() {
   return bookings.map(b => ({
     _id: b._id,
     bookingCode: b.bookingCode,
-    vehicleId: { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year },
-    customerId: { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` },
+    vehicleId: b.vehicleId 
+  ? { _id: b.vehicleId._id, title: b.vehicleId.title, year: b.vehicleId.year }
+  : { _id: "deleted", title: "Vehicle Not Found", year: "N/A" },
+
+    customerId: b.customerId
+  ? { _id: b.customerId._id, name: `${b.customerId.firstName} ${b.customerId.lastName}` }
+  : { _id: "deleted", name: "Customer Not Found" },
     bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
     bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
     totalPrice: b.totalPrice,

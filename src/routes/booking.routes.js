@@ -15,6 +15,7 @@ const {
   getOwnerCompletedBookings,
   confirmBooking,
   requestHandover,
+  getHandoverRequests,
   acceptHandover,
   getOwnerContactDetails,  
   updateBookingStatus,
@@ -77,6 +78,10 @@ router.get("/customer/owner/:ownerId",authMiddleware,roleMiddleware("customer", 
 
 //pagined see confirm all bookings
 
+// Owner: Get handover requests
+router.get("/owner/handover-requests", authMiddleware, roleMiddleware("owner"), getHandoverRequests);
+
+
 router.get("/owner/paginated", authMiddleware, roleMiddleware("owner"), getOwnerBookingsPaginated);
 // Owner Paginated Routes
 router.get("/owner/history/paginated", authMiddleware, roleMiddleware("owner"), getOwnerRentalHistoryPaginated);
@@ -108,6 +113,7 @@ router.put("/owner/:id", authMiddleware, roleMiddleware("owner"), manageBookingB
 
 // Owner confirms booking with mileage + start odometer
 router.put("/owner/:id/confirm", authMiddleware, roleMiddleware("owner"), confirmBooking);
+
 
 // Owner accepts handover
 router.put("/owner/:id/accept-handover", authMiddleware, roleMiddleware("owner"), acceptHandover);

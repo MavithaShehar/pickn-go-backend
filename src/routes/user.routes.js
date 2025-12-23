@@ -21,6 +21,7 @@ const {
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+const { handleContactSubmission } = require("../utils/Contactusemail");
 const {
   validateUser,
   validateResetPassword,
@@ -97,6 +98,25 @@ router.put(
   editProfile
 );
 router.delete("/profile", authMiddleware, deleteProfile);
+
+
+// Admin
+router.delete("/:id", authMiddleware, roleMiddleware("admin"), adminDeleteUser);
+
+// Contact form route
+router.post("/contact", async (req, res) => {
+  const { firstName, lastName, email, phone, message } = req.body;
+
+  try {
+    await handleContactSubmission({ firstName, lastName, email, phone, message });
+    res.status(200).json({ message: "Message sent successfully" });
+  } catch (error) {
+    console.error("Error sending contact email:", error);
+    res.status(400).json({ error: error.message || "Failed to send message" });
+  }
+});
+
+module.exports = router;
 
 // Update avatar separately
 router.put("/profile/avatar", authMiddleware, upload.single("avatar"), handleUploadErrors, updateAvatar);

@@ -24,7 +24,7 @@ router.use("/", vehicleBookingCountRoutes);
 router.post(
   "/",
   authMiddleware,
-  roleMiddleware("owner"),
+  roleMiddleware("owner","customer"),
   (req, res, next) => {
     req.uploadType = "vehicle"; // tell multer which folder to use
     next();

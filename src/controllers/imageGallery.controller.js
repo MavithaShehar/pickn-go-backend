@@ -1,9 +1,7 @@
-// controllers/imageGallery.controller.js
 const imageService = require('../services/imageGallery.service');
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
 
-// POST /api/images → add image(s) - ONLY returns added images info
 const addImages = async (req, res) => {
   try {
     const result = await imageService.addImages(req);
@@ -24,11 +22,11 @@ const addImages = async (req, res) => {
     
     res.status(200).json(response);
   } catch (error) {
+    console.error('Add images error:', error);
     res.status(400).json({ message: error.message });
   }
 };
 
-// GET /api/images → view all images
 const getAllImages = async (req, res) => {
   try {
     const images = await imageService.getAllImages();
@@ -46,11 +44,11 @@ const getAllImages = async (req, res) => {
       message: `Retrieved ${images.length} images`
     });
   } catch (error) {
+    console.error('Get all images error:', error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// PUT /api/images/:id → edit specific image
 const updateImageById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -68,11 +66,11 @@ const updateImageById = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Update image error:', error);
     res.status(400).json({ message: error.message });
   }
 };
 
-// DELETE /api/images/:id → delete specific image
 const deleteImageById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -83,11 +81,11 @@ const deleteImageById = async (req, res) => {
       remainingCount: result.remainingCount
     });
   } catch (error) {
+    console.error('Delete image error:', error);
     res.status(404).json({ message: error.message });
   }
 };
 
-// GET /api/images/:id → Get single image metadata + file URL
 const getImageById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -103,29 +101,36 @@ const getImageById = async (req, res) => {
       url: `/api/images/${image._id}/file`
     });
   } catch (error) {
+    console.error('Get image by ID error:', error);
     res.status(404).json({ message: error.message });
   }
 };
 
-// GET /api/images/:id/file → Serve the actual image file
+// ✅ Serve image from file system
 const serveImageFile = async (req, res) => {
   try {
     const { id } = req.params;
     const image = await imageService.getImageById(id);
     
-    // // Check if file exists
-    // if (!fs.existsSync(image.path)) {
-    //   // If file doesn't exist, remove it from the database
-    //   await imageService.deleteImageById(id);
-    //   return res.status(404).json({ message: 'Image file not found on disk and has been removed from database' });
-    // }
+    // Check if file exists on disk
+    if (!fs.existsSync(image.absolutePath)) {
+      console.log(`File not found: ${image.absolutePath}`);
+      return res.status(404).json({ 
+        message: 'Image file not found on server',
+        path: image.path
+      });
+    }
     
-    // Set appropriate content type
+    // Set headers
     res.setHeader('Content-Type', image.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${image.originalName || image.filename}"`);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     
-    // Serve the file
-    res.sendFile(path.resolve(image.path));
+    // Serve file from disk
+    res.sendFile(path.resolve(image.absolutePath));
+    
   } catch (error) {
+    console.error('Serve image file error:', error);
     res.status(404).json({ message: error.message });
   }
 };

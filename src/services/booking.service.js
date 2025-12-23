@@ -561,6 +561,46 @@ async function requestHandover(bookingId, customerId) {
   return booking;
 }
 
+// Owner: Get Handover Requests
+async function getHandoverRequests(ownerId) {
+  const vehicles = await Vehicle.find({ ownerId });
+  const vehicleIds = vehicles.map(v => v._id);
+
+  const bookings = await Booking.find({
+    vehicleId: { $in: vehicleIds },
+    handoverRequest: true, // Only bookings where customer requested handover
+    bookingStatus: "ongoing" // Only ongoing bookings can have handover requests
+  })
+    .populate({ path: "vehicleId", select: "_id title year" })
+    .populate({ path: "customerId", select: "_id firstName lastName phoneNumber email" });
+
+  return bookings.map(b => ({
+    _id: b._id,
+    bookingCode: b.bookingCode,
+    vehicleId: { 
+      _id: b.vehicleId._id, 
+      title: b.vehicleId.title, 
+      year: b.vehicleId.year 
+    },
+    customerId: { 
+      _id: b.customerId._id, 
+      name: `${b.customerId.firstName} ${b.customerId.lastName}`,
+      phoneNumber: b.customerId.phoneNumber,
+      email: b.customerId.email
+    },
+    bookingStartDate: b.bookingStartDate.toISOString().split("T")[0],
+    bookingEndDate: b.bookingEndDate.toISOString().split("T")[0],
+    totalPrice: b.totalPrice,
+    bookingStatus: b.bookingStatus,
+    handoverRequest: b.handoverRequest,
+    startLocation: b.startLocation,
+    endLocation: b.endLocation,
+    startOdometer: b.startOdometer,
+    agreedMileage: b.agreedMileage,
+    createdAt: b.createdAt
+  }));
+}
+
 // Owner accepts handover and completes booking
 async function acceptHandover(bookingId, ownerId, { endOdometer, ratePerKm }) {
   const booking = await Booking.findById(bookingId);
@@ -627,6 +667,7 @@ module.exports = {
   getOwnerCompletedBookings,
   confirmBooking,
   requestHandover,
+  getHandoverRequests,
   acceptHandover,
   getOwnerContactDetails, 
   updateBookingStatus,

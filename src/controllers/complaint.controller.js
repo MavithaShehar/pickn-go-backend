@@ -36,7 +36,7 @@ static async createComplaint(req, res) {
     }
   }
 
-  static async getAllComplaints(req, res) {
+  static async getAllComplaints(req, res) {po
     try {
       const complaints = await ComplaintService.getAllComplaints();
       res.json(complaints);

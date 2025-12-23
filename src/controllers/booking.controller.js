@@ -216,6 +216,25 @@ exports.confirmBooking = async (req, res) => {
   }
 };
 
+// Owner: Get Handover Requests
+exports.getHandoverRequests = async (req, res) => {
+  try {
+    const vehicles = await Vehicle.find({ ownerId: req.user.id });
+    const vehicleIds = vehicles.map(v => v._id);
+    
+    const bookings = await Booking.find({
+      vehicleId: { $in: vehicleIds },
+      bookingStatus: "handover_requested" // Or whatever status you use
+    })
+      .populate({ path: "vehicleId", select: "_id title year" })
+      .populate({ path: "customerId", select: "_id firstName lastName phoneNumber" });
+    
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Owner accepts handover & completes booking
 exports.acceptHandover = async (req, res) => {
   try {

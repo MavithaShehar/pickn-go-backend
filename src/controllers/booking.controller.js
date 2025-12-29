@@ -224,7 +224,8 @@ exports.getHandoverRequests = async (req, res) => {
     
     const bookings = await Booking.find({
       vehicleId: { $in: vehicleIds },
-      bookingStatus: "handover_requested" // Or whatever status you use
+      handoverRequest: true, 
+      bookingStatus: "ongoing" // ✅ Only ongoing bookings
     })
       .populate({ path: "vehicleId", select: "_id title year" })
       .populate({ path: "customerId", select: "_id firstName lastName phoneNumber" });

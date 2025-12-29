@@ -556,6 +556,11 @@ async function requestHandover(bookingId, customerId) {
   const booking = await Booking.findOne({ _id: bookingId, customerId });
   if (!booking) throw new Error("Booking not found or not authorized");
 
+  // ✅ Add validation - only allow for ongoing bookings
+  if (booking.bookingStatus !== "ongoing") {
+    throw new Error("Handover can only be requested for ongoing bookings");
+  }
+
   booking.handoverRequest = true;
   await booking.save();
   return booking;

@@ -66,8 +66,8 @@ router.put("/:id", authMiddleware, roleMiddleware("customer","owner"), updateBoo
 // Delete a booking (customer)
 router.delete("/:id", authMiddleware, roleMiddleware("customer","owner"), deleteBooking);
 
-// Customer sends handover request
-router.put("/:id/request-handover", authMiddleware,roleMiddleware("customer"), requestHandover);
+// Customer, owner sends handover request
+router.put("/:id/request-handover", authMiddleware,roleMiddleware("customer","owner"), requestHandover);
 
 // Get owner contact details by owner ID
 router.get("/customer/owner/:ownerId",authMiddleware,roleMiddleware("customer", "owner"), getOwnerContactDetails);

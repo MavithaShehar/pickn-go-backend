@@ -1,11 +1,24 @@
-// services/imageService.js
 const ImageGallery = require('../models/imageGallery.model');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const MAX_IMAGES = 5;
 
-// ADD one or more images (FIFO: remove oldest if needed)
+// ✅ Helper: Convert absolute path to relative path from project root
+const getRelativePath = (absolutePath) => {
+  const projectRoot = path.resolve(__dirname, '..', '..');
+  const relativePath = path.relative(projectRoot, absolutePath);
+  // Normalize to forward slashes for cross-platform compatibility
+  return relativePath.replace(/\\/g, '/');
+};
+
+// ✅ Helper: Convert relative path to absolute path
+const getAbsolutePath = (relativePath) => {
+  const projectRoot = path.resolve(__dirname, '..', '..');
+  return path.join(projectRoot, relativePath);
+};
+
+// ✅ ADD images - Store file path in MongoDB, keep file on disk
 const addImages = async (req) => {
   if (!req.files || req.files.length === 0) {
     throw new Error('At least one image is required');
@@ -13,30 +26,32 @@ const addImages = async (req) => {
 
   const gallery = await ImageGallery.getSingleton();
   
-  // Create new images with file paths
+  // Create new image records with RELATIVE paths
   const newImages = req.files.map(file => ({
     filename: file.filename,
-    path: file.path,
+    path: getRelativePath(file.path), // Store relative path
     originalName: file.originalname,
     mimeType: file.mimetype,
     size: file.size,
     uploadedAt: new Date()
   }));
   
-  // Store current count before addition
-  const initialCount = gallery.images.length;
-  
-  // Add new images and maintain FIFO limit
+  // Maintain FIFO limit
   gallery.images = [...gallery.images, ...newImages];
   const removedCount = gallery.images.length - MAX_IMAGES;
   
   let removedImages = [];
   if (removedCount > 0) {
-    // Remove oldest files from disk and store removed image info
     removedImages = gallery.images.slice(0, removedCount);
+    
+    // Delete old files from disk
     removedImages.forEach(image => {
       try {
-        fs.unlinkSync(image.path);
+        const absolutePath = getAbsolutePath(image.path);
+        if (fs.existsSync(absolutePath)) {
+          fs.unlinkSync(absolutePath);
+          console.log(`✅ Deleted old file: ${image.filename}`);
+        }
       } catch (err) {
         console.error('Error deleting file:', err);
       }
@@ -47,7 +62,6 @@ const addImages = async (req) => {
   
   await gallery.save();
   
-  // Return only added images and removal info
   const addedImagesWithIds = gallery.images.slice(-newImages.length).map(img => ({
     _id: img._id,
     filename: img.filename,
@@ -69,39 +83,38 @@ const addImages = async (req) => {
   };
 };
 
-// GET all images
 const getAllImages = async () => {
   const gallery = await ImageGallery.getSingleton();
   return gallery.images;
 };
 
-// UPDATE image by ObjectId
 const updateImageById = async (id, req) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error('Invalid image ID format');
   }
-
   if (!req.file) {
     throw new Error('No image file provided');
   }
 
   const gallery = await ImageGallery.getSingleton();
   const image = gallery.images.id(id);
-  
   if (!image) {
     throw new Error('No image found with this ID');
   }
 
   // Delete old file
   try {
-    fs.unlinkSync(image.path);
+    const oldAbsolutePath = getAbsolutePath(image.path);
+    if (fs.existsSync(oldAbsolutePath)) {
+      fs.unlinkSync(oldAbsolutePath);
+    }
   } catch (err) {
     console.error('Error deleting old file:', err);
   }
 
   // Update with new file
   image.filename = req.file.filename;
-  image.path = req.file.path;
+  image.path = getRelativePath(req.file.path);
   image.originalName = req.file.originalname;
   image.mimeType = req.file.mimetype;
   image.size = req.file.size;
@@ -111,7 +124,6 @@ const updateImageById = async (id, req) => {
   return image;
 };
 
-// DELETE image by ObjectId
 const deleteImageById = async (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error('Invalid image ID format');
@@ -119,19 +131,20 @@ const deleteImageById = async (id) => {
 
   const gallery = await ImageGallery.getSingleton();
   const image = gallery.images.id(id);
-  
   if (!image) {
     throw new Error('No image found with this ID');
   }
 
   // Remove file from disk
   try {
-    fs.unlinkSync(image.path);
+    const absolutePath = getAbsolutePath(image.path);
+    if (fs.existsSync(absolutePath)) {
+      fs.unlinkSync(absolutePath);
+    }
   } catch (err) {
     console.error('Error deleting file:', err);
   }
 
-  // Remove from database
   gallery.images.pull(id);
   await gallery.save();
   
@@ -142,18 +155,26 @@ const deleteImageById = async (id) => {
   };
 };
 
-// GET the full gallery object (for debugging)
-const getGallery = async () => {
-  return await ImageGallery.getSingleton();
-};
-
-// GET image by ObjectId
 const getImageById = async (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error('Invalid image ID format');
+  }
+
   const gallery = await ImageGallery.getSingleton();
   const image = gallery.images.id(id);
+  if (!image) {
+    throw new Error('No image found with this ID');
+  }
+  
+  // Return with absolute path for serving
+  return {
+    ...image.toObject(),
+    absolutePath: getAbsolutePath(image.path)
+  };
+};
 
-  if (!image) throw new Error('No image found with this ID');
-  return image;
+const getGallery = async () => {
+  return await ImageGallery.getSingleton();
 };
 
 module.exports = {

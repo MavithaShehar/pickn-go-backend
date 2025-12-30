@@ -70,9 +70,17 @@ router.get(
   vehicleController.getVehicleById
 );
 
-// Update Vehicle
+// Update Vehicle status only
 router.put(
   "/:id/status",
+  authMiddleware,
+  roleMiddleware("owner"),
+  vehicleController.updateVehicleStatus
+);
+
+// Update Vehicle Full Details
+router.put(
+  "/:id",
   authMiddleware,
   roleMiddleware("owner"),
   vehicleController.updateVehicle

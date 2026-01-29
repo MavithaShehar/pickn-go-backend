@@ -1,50 +1,184 @@
 const express = require("express");
-const {
-  addVehicle,
-  getVehicles,
-  getVehicleById,
-  updateVehicle,
-  deleteVehicle,
-  getAvailableVehicles,
-  getAllAvailableVehicles,   
-  getAllUnavailableVehicles,
-  getAvailableVehiclesByOwner,
-  getAllUnvarifiedVehicles,
-  adminVerifyVehicle,
-} = require("../controllers/vehicle.controller");
-
+const vehicleController = require("../controllers/vehicle.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+const vehicleBookingCountRoutes = require("./vehicleBookingCount.routes");
+const uploadMiddleware = require("../middlewares/uploadMiddleware");
 
 const router = express.Router();
 
+// ---------------- Public Routes ----------------
 
-router.patch("/:id/verify", authMiddleware, roleMiddleware("admin"), adminVerifyVehicle);
+// Get all available vehicles
+router.get("/available", vehicleController.getAvailableVehicles);
 
+// Get available vehicles paginated
+router.get("/available/paginated", vehicleController.getAvailableVehiclesPaginated);
 
-// Customer: view only available vehicles
-router.get("/available",authMiddleware,roleMiddleware("customer"),getAvailableVehicles);
-// Admin: view ALL available vehicles
-router.get("/admin/available",authMiddleware,roleMiddleware("admin"),getAllAvailableVehicles);
+// Booking Count Routes
+router.use("/", vehicleBookingCountRoutes);
 
-// Admin: view ALL unavailable vehicles
-router.get("/admin/unavailable",authMiddleware,roleMiddleware("admin"),getAllUnavailableVehicles);
-// Admin: view ALL unvarified vehicles
+// ---------------- Owner Routes ----------------
 
-router.get("/admin/unvarified",authMiddleware,roleMiddleware("admin"),getAllUnvarifiedVehicles);
+// ✅ Add Vehicle WITH image upload support
+router.post(
+  "/",
+  authMiddleware,
+  roleMiddleware("owner","customer"),
+  (req, res, next) => {
+    req.uploadType = "vehicle"; // tell multer which folder to use
+    next();
+  },
+  uploadMiddleware.array("images", 5), // allow up to 5 vehicle images
+  vehicleController.addVehicle
+);
 
+// Upload Vehicle Images separately (optional)
+router.put(
+  "/:id/images",
+  authMiddleware,
+  roleMiddleware("owner"),
+  (req, res, next) => {
+    req.uploadType = "vehicle";
+    next();
+  },
+  uploadMiddleware.array("images", 5),
+  vehicleController.updateVehicleImagesOnly
+);
 
-// Customer: view all available vehicles of the owner of a selected vehicle
-router.get("/owner/:id/available",authMiddleware,roleMiddleware("customer"),getAvailableVehiclesByOwner);
+// Owner Vehicles (Paginated)
+router.get(
+  "/owner/vehicle/paginated",
+  authMiddleware,
+  roleMiddleware("owner"),
+  vehicleController.getVehiclesPaginated
+);
 
+// Owner Vehicles - All
+router.get(
+  "/owner/vehicle",
+  authMiddleware,
+  roleMiddleware("owner"),
+  vehicleController.getVehicles
+);
 
-// Customer can also POST ( change owner automatically)
-router.post("/", authMiddleware, addVehicle);
+// Get Vehicle by ID (Owner)
+router.get(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("owner"),
+  vehicleController.getVehicleById
+);
 
-// Owner-only routes(get,put,delete)
-router.get("/", authMiddleware, roleMiddleware("owner"), getVehicles);
-router.get("/:id", authMiddleware, roleMiddleware("owner"), getVehicleById);
-router.put("/:id", authMiddleware, roleMiddleware("owner"), updateVehicle);
-router.delete("/:id", authMiddleware, roleMiddleware("owner"), deleteVehicle);
+// Update Vehicle status only
+router.put(
+  "/:id/status",
+  authMiddleware,
+  roleMiddleware("owner"),
+  vehicleController.updateVehicleStatus
+);
+
+// Update Vehicle Full Details
+router.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("owner"),
+  vehicleController.updateVehicle
+);
+
+// Delete Vehicle
+router.delete(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("owner"),
+  vehicleController.deleteVehicle
+);
+
+// ---------------- Customer Routes ----------------
+
+// Customer Paginated: Available vehicles by owner
+router.get(
+  "/available/by-owner/:vehicleId",
+  authMiddleware,
+  roleMiddleware("customer"),
+  vehicleController.getPaginatedAvailableVehiclesByOwner
+);
+
+// Available vehicles by owner
+router.get(
+  "/owner/:id/available",
+  authMiddleware,
+  roleMiddleware("customer"),
+  vehicleController.getAvailableVehiclesByOwner
+);
+
+// ---------------- Admin Routes ----------------
+
+// Admin Paginated Routes
+router.get(
+  "/admin/available/paginated",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.getAllAvailableVehiclesPaginated
+);
+
+router.get(
+  "/admin/unavailable/paginated",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.getAllUnavailableVehiclesPaginated
+);
+
+router.get(
+  "/admin/unverified/paginated",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.getAllUnverifiedVehiclesPaginated
+);
+
+// Admin view all
+router.get(
+  "/admin/available",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.getAllAvailableVehicles
+);
+
+router.get(
+  "/admin/unavailable",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.getAllUnavailableVehicles
+);
+
+router.get(
+  "/admin/unverified",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.getAllUnvarifiedVehicles
+);
+
+router.get(
+  "/admin/verified",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.getAllVerifiedVehicles
+);
+
+// Admin verify / update verification
+router.patch(
+  "/:id/verify",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.adminVerifyVehicle
+);
+
+// Admin update verification status
+router.put(
+  "/:id/verification",
+  authMiddleware,
+  roleMiddleware("admin"),
+  vehicleController.adminUpdateVerificationStatus
+);
 
 module.exports = router;

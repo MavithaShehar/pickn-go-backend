@@ -1,8 +1,17 @@
 require("dotenv").config();
 const app = require("./app");
 const connectDB = require("./config/connectDB");
+const fs = require('fs');
+const path = require('path');
 
 const PORT = process.env.PORT || 5000;
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Created uploads directory');
+}
 
 // Connect to DB first
 connectDB();

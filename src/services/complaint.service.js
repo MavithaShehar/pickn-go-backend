@@ -1,38 +1,40 @@
+// services/complaint.service.js
 const Complaint = require('../models/complaint.model');
-const { COMPLAINT_STATUS } = require('../config/complaint');
-const fs = require('fs').promises; // Use promise-based fs
-const path = require('path');
-const generateComplaintId = require('../utils/generateComplaintId');
 
 class ComplaintService {
 
-  // Validate uploaded images
-  static validateImages(files) {
-    if (files.length > 5) {
-      return { valid: false, message: 'Maximum 5 images allowed' };
+  // Create new complaint using uploaded files
+// ✅ services/complaint.service.js
+static async createComplaint(complaintData) {
+  try {
+    if (!complaintData.title || !complaintData.description) {
+      throw new Error("Title & description required");
     }
 
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-    for (let file of files) {
-      if (!allowedMimeTypes.includes(file.mimetype)) {
-        return { valid: false, message: 'Only JPEG, PNG images are allowed' };
-      }
-    }
+    // ✅ Use images passed from controller already mapped from req.files
+    const complaint = new Complaint({
+      title: complaintData.title,
+      description: complaintData.description,
+      images: complaintData.images || [],  // << HERE ✅
+      user: complaintData.user
+    });
 
-    return { valid: true, message: 'Images are valid' };
+    await complaint.save();
+    return complaint;
+  } catch (err) {
+    throw new Error("Error creating complaint: " + err.message);
   }
+}
 
-  // Create new complaint
-  static async createComplaint(complaintData) {
+
+  // Get complaints by user ID
+  static async getComplaintsByUser(userId) {
     try {
-      const complaintID = await generateComplaintId();
-      const complaint = new Complaint({
-        ...complaintData,
-        complaintID // Correctly assign inside object
-      });
-      return await complaint.save();
+      return await Complaint.find({ user: userId })
+        .populate('user', 'firstname email')
+        .sort({ dateCreated: -1 });
     } catch (error) {
-      throw new Error(`Error creating complaint: ${error.message}`);
+      throw new Error(`Error fetching your complaints: ${error.message}`);
     }
   }
 
@@ -40,10 +42,21 @@ class ComplaintService {
   static async getAllComplaints() {
     try {
       return await Complaint.find()
-        .populate('user', 'firstname email') // Assuming User has 'firstname'
+        .populate('user', 'firstname email')
         .sort({ dateCreated: -1 });
     } catch (error) {
       throw new Error(`Error fetching complaints: ${error.message}`);
+    }
+  }
+
+  // Get complaint by ID
+  static async getComplaintById(id) {
+    try {
+      const complaint = await Complaint.findById(id).populate('user', 'firstname email');
+      if (!complaint) throw new Error('Complaint not found');
+      return complaint;
+    } catch (error) {
+      throw new Error(`Error fetching complaint: ${error.message}`);
     }
   }
 
@@ -58,42 +71,36 @@ class ComplaintService {
     }
   }
 
-  // Edit complaint (only owner + pending)
-  static async editComplaint(complaintId, userId, updateData) {
+  // Edit complaint with uploaded files
+  static async editComplaint(complaintId, userId, updateData, files) {
     try {
+      // Find the complaint
       const complaint = await Complaint.findById(complaintId);
-      
-      if (!complaint) {
-        throw new Error('Complaint not found');
-      }
 
+      if (!complaint) throw new Error('Complaint not found');
+
+      // Check ownership
       if (complaint.user.toString() !== userId.toString()) {
         throw new Error('You can only edit your own complaints');
       }
 
-      if (complaint.status !== COMPLAINT_STATUS.PENDING) {
+      // Check status
+      if (complaint.status !== 'pending') {
         throw new Error('Only pending complaints can be edited');
       }
 
-      // Delete old images if new ones are uploaded
-      if (updateData.images && complaint.images && complaint.images.length > 0) {
-        const deletePromises = complaint.images.map(imagePath => {
-          const fullPath = path.join(__dirname, '..', imagePath);
-          return fs.unlink(fullPath).catch(err => {
-            console.log('Error deleting old image:', err.message);
-          });
-        });
-        await Promise.all(deletePromises);
+      // Use uploaded files instead of Base64
+      if (files?.length) {
+        updateData.images = files.map(file => `/uploads/images/complaints/${file.filename}`);
       }
+
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) delete updateData[key];
+      });
 
       const updatedComplaint = await Complaint.findByIdAndUpdate(
         complaintId,
-        {
-          title: updateData.title || complaint.title,
-          description: updateData.description || complaint.description,
-          images: updateData.images || complaint.images,
-          lastModified: Date.now()
-        },
+        { ...updateData, lastModified: Date.now() },
         { new: true, runValidators: true }
       ).populate('user', 'firstname email');
 
@@ -103,7 +110,7 @@ class ComplaintService {
     }
   }
 
-  // Update complaint status (admin or moderator use)
+  // Update complaint status
   static async updateComplaintStatus(complaintId, status) {
     try {
       return await Complaint.findByIdAndUpdate(
@@ -114,6 +121,46 @@ class ComplaintService {
     } catch (error) {
       throw new Error(`Error updating complaint status: ${error.message}`);
     }
+  }
+
+  // Delete complaint
+  static async deleteComplaint(id) {
+    try {
+      const complaint = await Complaint.findByIdAndDelete(id);
+      return complaint || null;
+    } catch (error) {
+      throw new Error(`Failed to delete complaint: ${error.message}`);
+    }
+  }
+
+  // Paginated queries
+  static async getComplaintsByUserPaginated(userId, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    return await Complaint.find({ user: userId })
+      .populate('user', 'firstname email')
+      .sort({ dateCreated: -1 })
+      .skip(skip)
+      .limit(limit);
+    return complaints;
+  }
+
+  static async getAllComplaintsPaginated(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    return await Complaint.find()
+      .populate('user', 'firstname email')
+      .sort({ dateCreated: -1 })
+      .skip(skip)
+      .limit(limit);
+    return complaints;
+  }
+
+  static async getComplaintsByStatusPaginated(status, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    return await Complaint.find({ status })
+      .populate('user', 'firstname email')
+      .sort({ dateCreated: -1 })
+      .skip(skip)
+      .limit(limit);
   }
 }
 

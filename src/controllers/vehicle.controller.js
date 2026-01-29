@@ -1,18 +1,22 @@
 const vehicleService = require("../services/vehicle.service");
-const User = require("../models/user.model"); 
+const User = require("../models/user.model");
+const paginate = require("../utils/paginate");
+const Vehicle = require("../models/vehicle.model");
 
 // Helper: ensure user is a verified owner
 const ensureVerifiedOwner = (req, res) => {
   if (req.user.role !== "owner" || !req.user.verificationStatus) {
-    return res.status(403).json({ message: "Only verified owners can perform this action" });
+    return res
+      .status(403)
+      .json({ message: "Only verified owners can perform this action" });
   }
   return true;
 };
 
-// Add new vehicle
+// Add new vehicle (✅ No images required now)
 exports.addVehicle = async (req, res) => {
   try {
-    // If user is customer, convert to owner
+    // 1️⃣ Auto-upgrade customer to owner
     if (req.user.role === "customer") {
       await User.findByIdAndUpdate(req.user.id, { role: "owner" });
       req.user.role = "owner";
@@ -20,18 +24,38 @@ exports.addVehicle = async (req, res) => {
 
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const vehicle = await vehicleService.createVehicle(req.user.id, req.body);
-    res.status(201).json(vehicle);
+    // 2️⃣ Handle uploaded images (form-data)
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      images = req.files.map((file) => `/uploads/images/vehicles/${file.filename}`);
+    }
+
+    // 3️⃣ Prepare vehicle data
+    const vehicleData = {
+      ...req.body,
+      images,
+    };
+
+    // 4️⃣ Save vehicle
+    const vehicle = await vehicleService.createVehicle(req.user.id, vehicleData);
+
+    res.status(201).json({
+      success: true,
+      message: "Vehicle created successfully",
+      vehicle,
+    });
+
   } catch (error) {
+    console.error("Error adding vehicle:", error);
     res.status(400).json({ message: error.message });
   }
 };
+
 
 // Get all vehicles of logged-in owner
 exports.getVehicles = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
-
     const vehicles = await vehicleService.getOwnerVehicles(req.user.id);
     res.json(vehicles);
   } catch (error) {
@@ -44,7 +68,10 @@ exports.getVehicleById = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const vehicle = await vehicleService.getVehicleById(req.user.id, req.params.id);
+    const vehicle = await vehicleService.getVehicleById(
+      req.user.id,
+      req.params.id
+    );
     if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
     res.json(vehicle);
   } catch (error) {
@@ -52,14 +79,59 @@ exports.getVehicleById = async (req, res) => {
   }
 };
 
-// Update vehicle
+// Update vehicle info (no image update here)
 exports.updateVehicle = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const updated = await vehicleService.updateVehicle(req.user.id, req.params.id, req.body);
-    if (!updated) return res.status(404).json({ message: "Vehicle not found" });
-    res.json(updated);
+    const updateData = { ...req.body }; // fields like title, description, etc.
+
+    const result = await vehicleService.updateVehicle(
+      req.user.id,
+      req.params.id,
+      updateData
+    );
+
+    if (!result.success)
+      return res.status(404).json({ message: result.message });
+
+    res.json({
+      success: true,
+      message: result.message,
+      data: result.data,
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Update only vehicle images
+exports.updateVehicleImagesOnly = async (req, res) => {
+  try {
+    if (!ensureVerifiedOwner(req, res)) return;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No images uploaded" });
+    }
+
+    // Map uploaded files to accessible paths
+    const imagePaths = req.files.map(file => `/uploads/images/vehicles/${file.filename}`);
+
+    const result = await vehicleService.updateVehicle(
+      req.user.id,
+      req.params.id,
+      { images: imagePaths }
+    );
+
+    if (!result.success) {
+      return res.status(404).json({ message: result.message });
+    }
+
+    res.json({
+      success: true,
+      message: "Vehicle images updated successfully",
+      vehicle: result.data,
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -70,15 +142,28 @@ exports.deleteVehicle = async (req, res) => {
   try {
     if (!ensureVerifiedOwner(req, res)) return;
 
-    const deleted = await vehicleService.deleteVehicle(req.user.id, req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Vehicle not found" });
-    res.json({ message: "Vehicle deleted successfully" });
+    const deleted = await vehicleService.deleteVehicle(
+      req.user.id,
+      req.params.id
+    );
+    
+    if (!deleted.success) {
+      // Check if it's the "active bookings" error or "not found" error
+      if (deleted.message.includes("Cannot delete vehicle")) {
+        return res.status(400).json({ message: deleted.message });
+      }
+      return res.status(404).json({ message: deleted.message });
+    }
+
+    res.json({ 
+      success: true,
+      message: deleted.message 
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get available vehicles (for customers) — no restriction
 exports.getAvailableVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAvailableVehicles();
@@ -88,7 +173,6 @@ exports.getAvailableVehicles = async (req, res) => {
   }
 };
 
-// Admin: get all available vehicles
 exports.getAllAvailableVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAllAvailableVehicles();
@@ -97,8 +181,6 @@ exports.getAllAvailableVehicles = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// Admin : Verify Vehile
 
 exports.adminVerifyVehicle = async (req, res) => {
   try {
@@ -112,8 +194,6 @@ exports.adminVerifyVehicle = async (req, res) => {
   }
 };
 
-//Get unverified Vehicle 
-
 exports.getAllUnvarifiedVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAllUnvarifiedVehicles();
@@ -122,10 +202,18 @@ exports.getAllUnvarifiedVehicles = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+exports.getAllVerifiedVehicles = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getAllVerifiedVehicles();
+    if (!vehicles.success) {
+      return res.status(400).json({ message: vehicles.message });
+    }
+    res.json(vehicles.data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-
-
-// Admin: get all unavailable vehicles
 exports.getAllUnavailableVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getAllUnavailableVehicles();
@@ -135,13 +223,240 @@ exports.getAllUnavailableVehicles = async (req, res) => {
   }
 };
 
-// Get all available vehicles of a specific owner (for customers)
 exports.getAvailableVehiclesByOwner = async (req, res) => {
   try {
-    const vehicles = await vehicleService.getAvailableVehiclesByOwner(req.params.id);
+    const vehicles = await vehicleService.getAvailableVehiclesByOwner(
+      req.params.id
+    );
     if (!vehicles) return res.status(404).json({ message: "Vehicle not found" });
 
     res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
+
+// PUT /api/vehicles/:id/status
+exports.updateVehicleStatus = async (req, res) => {
+  try {
+    const ownerId = req.user?.id || req.user?._id;
+    const vehicleId = req.params.id;
+    const { status } = req.body;
+
+    const result = await vehicleService.updateVehicleStatus(ownerId, vehicleId, status);
+
+    if (!result.success) {
+      if (result.message === "Vehicle not found") {
+        return res.status(404).json(result);
+      }
+      if (result.message.includes("Invalid status")) {
+        return res.status(400).json(result);
+      }
+      if (result.message.includes("Only verified owners")) {
+        return res.status(403).json(result);
+      }
+      return res.status(400).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+exports.adminUpdateVerificationStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (typeof status !== "boolean") {
+      return res.status(400).json({ message: "Status must be true or false" });
+    }
+
+    const vehicle = await vehicleService.adminUpdateVerificationStatus(
+      req.params.id,
+      status
+    );
+
+    res.status(200).json({
+      message: `Vehicle verification status updated to ${status}`,
+      vehicle,
+    });
+  } catch (error) {
+    if (error.message === "Vehicle not found") {
+      return res.status(404).json({ message: error.message });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+// ============================
+// OWNER PAGINATED VEHICLES
+// ============================
+exports.getVehiclesPaginated = async (req, res) => {
+  try {
+    if (req.user.role !== "owner" || !req.user.verificationStatus) {
+      return res.status(403).json({ message: "Only verified owners can perform this action" });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { ownerId: req.user.id },
+      []
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated owner vehicles fetched successfully",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================
+// CUSTOMER: PAGINATED AVAILABLE VEHICLES BY OWNER
+// ============================
+
+// ✅ Customer: Get paginated available vehicles by vehicleId
+exports.getPaginatedAvailableVehiclesByOwner = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+
+    // 1️⃣ Find the selected vehicle to get the owner
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle)
+      return res.status(404).json({ message: "Vehicle not found" });
+
+    // 2️⃣ Get that owner's available & verified vehicles
+    const filter = {
+      ownerId: vehicle.ownerId,
+      status: "available",
+      verificationStatus: true,
+    };
+
+    // 3️⃣ Use pagination utility
+    const result = await paginate(
+      Vehicle,
+      page,
+      limit,
+      filter,
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Paginated available vehicles fetched successfully",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================
+// CUSTOMER: ALL AVAILABLE VEHICLES (Paginated)
+// ============================
+exports.getAvailableVehiclesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { status: "available", verificationStatus: true },
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated available vehicles fetched successfully",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================
+// ADMIN: PAGINATED VEHICLE LISTS
+// ============================
+exports.getAllAvailableVehiclesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { status: "available" },
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated available vehicles (admin)",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getAllUnavailableVehiclesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { status: "unavailable" },
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated unavailable vehicles (admin)",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getAllUnverifiedVehiclesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await paginate(
+      require("../models/vehicle.model"),
+      page,
+      limit,
+      { verificationStatus: false },
+      [{ path: "ownerId", select: "firstName lastName email" }]
+    );
+
+    res.json({
+      success: true,
+      message: "Paginated unverified vehicles (admin)",
+      ...result,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

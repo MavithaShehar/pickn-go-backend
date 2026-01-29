@@ -1,55 +1,75 @@
-const multer = require('multer');
-const path = require('path');
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
-// Ensure uploads folder exists
-const fs = require('fs');
-const dir = './uploads';
-if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir, { recursive: true });
-}
+// ======================================
+// 🧩 Helper: Ensure folder exists
+// ======================================
+const ensureFolderExists = (folderPath) => {
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true });
+  }
+};
 
-// Configure storage
+// ======================================
+// ⚙️ Multer Storage Configuration
+// ======================================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    let folderPath;
+
+    switch (req.uploadType) {
+      case "profile":
+        folderPath = path.join(__dirname, "..", "uploads", "images", "profiles");
+        break;
+
+      case "vehicle":
+        folderPath = path.join(__dirname, "..", "uploads", "images", "vehicles");
+        break;
+
+       case "license": // ✅ added this
+       folderPath = path.join(__dirname, "..", "uploads", "images", "licenses");
+      break;  
+
+      case "complaint":
+        folderPath = path.join(__dirname, "..", "uploads", "images", "complaints");
+        break;
+
+      case "damageReports": // ✅ matches your routes
+        folderPath = path.join(__dirname, "..", "uploads", "images", "damageReports");
+        break;
+
+      default:
+        folderPath = path.join(__dirname, "..", "uploads", "images", "others");
+        break;
+    }
+
+    ensureFolderExists(folderPath);
+    cb(null, folderPath);
   },
+
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    const timestamp = Date.now();
+    const sanitizedName = file.originalname.replace(/\s+/g, "_");
+    const uniqueName = `${timestamp}-${sanitizedName}`;
+    cb(null, uniqueName);
+  },
 });
 
-// File filter for images only
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
-};
-
-// Initialize upload
+// ======================================
+// 🧰 Multer Instance
+// ======================================
 const upload = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB max
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/jpg"];
+    if (!allowed.includes(file.mimetype)) {
+      cb(new Error("Only JPG, JPEG & PNG image formats are allowed"));
+    } else {
+      cb(null, true);
+    }
+  },
 });
 
-// Handle Multer errors
-const handleUploadErrors = (err, req, res, next) => {
-  if (err) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File size too large. Max 5MB allowed.' });
-    }
-    if (err.message === 'Only image files are allowed!') {
-      return res.status(400).json({ error: err.message });
-    }
-    return res.status(400).json({ error: 'File upload error: ' + err.message });
-  }
-  next();
-};
-
-module.exports = {
-  upload,
-  handleUploadErrors
-};
+module.exports = upload;
